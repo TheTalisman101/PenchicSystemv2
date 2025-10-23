@@ -1,18 +1,16 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.39.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Max-Age': '86400',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
-serve(async (req) => {
-  // Handle CORS preflight requests
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
-      status: 204,
+      status: 200,
       headers: corsHeaders
     });
   }
@@ -127,6 +125,7 @@ serve(async (req) => {
             data: stkPushResult,
           }),
           {
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         );
@@ -137,7 +136,7 @@ serve(async (req) => {
       console.error('Fetch error:', fetchError);
       throw new Error(`M-Pesa API error: ${fetchError.message}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Function error:', error);
     return new Response(
       JSON.stringify({
