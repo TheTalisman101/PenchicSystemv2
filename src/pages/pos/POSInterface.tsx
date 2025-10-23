@@ -47,6 +47,8 @@ const POSInterface = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<any>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [mpesaPhoneNumber, setMpesaPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
     if (!user || (user.role !== 'admin' && user.role !== 'worker')) {
@@ -152,10 +154,39 @@ const POSInterface = () => {
     }
   };
 
+  const validatePhoneNumber = (phone: string): boolean => {
+    const phoneRegex = /^(254|0)?[17]\d{8}$/;
+    return phoneRegex.test(phone.replace(/\s/g, ''));
+  };
+
+  const formatPhoneNumber = (phone: string): string => {
+    let cleaned = phone.replace(/\s/g, '');
+    if (cleaned.startsWith('0')) {
+      cleaned = '254' + cleaned.substring(1);
+    } else if (cleaned.startsWith('+254')) {
+      cleaned = cleaned.substring(1);
+    } else if (!cleaned.startsWith('254')) {
+      cleaned = '254' + cleaned;
+    }
+    return cleaned;
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0) {
       alert('Cart is empty');
       return;
+    }
+
+    if (paymentMethod === 'mpesa') {
+      if (!mpesaPhoneNumber.trim()) {
+        setPhoneError('Phone number is required for M-Pesa payment');
+        return;
+      }
+      if (!validatePhoneNumber(mpesaPhoneNumber)) {
+        setPhoneError('Invalid phone number. Use format: 0712345678 or 254712345678');
+        return;
+      }
+      setPhoneError('');
     }
 
     setProcessing(true);
@@ -197,6 +228,34 @@ const POSInterface = () => {
 
       if (itemsError) throw itemsError;
 
+      let paymentStatus = 'completed';
+      let mpesaReference = null;
+
+      if (paymentMethod === 'mpesa') {
+        try {
+          const formattedPhone = formatPhoneNumber(mpesaPhoneNumber);
+          const { data: mpesaData, error: mpesaError } = await supabase.functions.invoke('mpesa-payment', {
+            body: {
+              orderId: order.id,
+              phoneNumber: formattedPhone,
+              amount: Math.round(totalAmount)
+            }
+          });
+
+          if (mpesaError || !mpesaData?.success) {
+            throw new Error(mpesaData?.message || 'M-Pesa payment initiation failed');
+          }
+
+          mpesaReference = mpesaData.data?.CheckoutRequestID || null;
+          paymentStatus = 'pending';
+          alert('Payment request sent to your phone. Please enter your M-Pesa PIN to complete the transaction.');
+        } catch (mpesaError: any) {
+          console.error('M-Pesa payment error:', mpesaError);
+          alert(`M-Pesa payment failed: ${mpesaError.message || 'Please try again or use another payment method'}`);
+          throw mpesaError;
+        }
+      }
+
       const { error: paymentError } = await supabase
         .from('payments')
         .insert([
@@ -204,7 +263,8 @@ const POSInterface = () => {
             order_id: order.id,
             amount: totalAmount,
             payment_method: paymentMethod,
-            status: 'completed'
+            status: paymentStatus,
+            mpesa_reference: mpesaReference
           }
         ]);
 
@@ -262,12 +322,23 @@ const POSInterface = () => {
       setAppliedDiscounts([]);
       setShowMobileCart(false);
       setShowReceipt(true);
+      setMpesaPhoneNumber('');
+      setPhoneError('');
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing order:', error);
-      alert('Failed to process order. Please try again.');
+      const errorMessage = error.message || 'Failed to process order. Please try again.';
+      alert(errorMessage);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handlePaymentMethodChange = (method: 'cash' | 'mpesa' | 'card') => {
+    setPaymentMethod(method);
+    setPhoneError('');
+    if (method !== 'mpesa') {
+      setMpesaPhoneNumber('');
     }
   };
 
@@ -600,7 +671,7 @@ const POSInterface = () => {
                   </label>
                   <div className="grid grid-cols-3 gap-3">
                     <button
-                      onClick={() => setPaymentMethod('cash')}
+                      onClick={() => handlePaymentMethodChange('cash')}
                       className={`p-4 rounded-lg border-2 transition-all ${
                         paymentMethod === 'cash'
                           ? 'border-primary bg-primary/10'
@@ -616,7 +687,7 @@ const POSInterface = () => {
                     </button>
 
                     <button
-                      onClick={() => setPaymentMethod('mpesa')}
+                      onClick={() => handlePaymentMethodChange('mpesa')}
                       className={`p-4 rounded-lg border-2 transition-all ${
                         paymentMethod === 'mpesa'
                           ? 'border-primary bg-primary/10'
@@ -632,7 +703,7 @@ const POSInterface = () => {
                     </button>
 
                     <button
-                      onClick={() => setPaymentMethod('card')}
+                      onClick={() => handlePaymentMethodChange('card')}
                       className={`p-4 rounded-lg border-2 transition-all ${
                         paymentMethod === 'card'
                           ? 'border-primary bg-primary/10'
@@ -648,6 +719,33 @@ const POSInterface = () => {
                     </button>
                   </div>
                 </div>
+
+                {paymentMethod === 'mpesa' && (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      M-Pesa Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="0712345678 or 254712345678"
+                      value={mpesaPhoneNumber}
+                      onChange={(e) => {
+                        setMpesaPhoneNumber(e.target.value);
+                        setPhoneError('');
+                      }}
+                      className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
+                        phoneError ? 'border-red-500' : 'border-neutral-200'
+                      }`}
+                      maxLength={12}
+                    />
+                    {phoneError && (
+                      <p className="mt-2 text-sm text-red-600">{phoneError}</p>
+                    )}
+                    <p className="mt-2 text-xs text-neutral-500">
+                      Enter the phone number that will receive the M-Pesa payment prompt
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3">
