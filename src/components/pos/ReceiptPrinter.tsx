@@ -18,6 +18,7 @@ interface ReceiptProps {
   paymentMethod: string;
   transactionId?: string;
   cashierEmail: string;
+  cashierName?: string;
   date: Date;
   onPrintComplete?: () => void;
   onClose?: () => void;
@@ -32,11 +33,20 @@ const ReceiptPrinter: React.FC<ReceiptProps> = ({
   paymentMethod,
   transactionId,
   cashierEmail,
+  cashierName,
   date,
   onPrintComplete,
   onClose
 }) => {
   const [isPrinting, setIsPrinting] = useState(false);
+
+  // Derive a display name from email if no explicit name provided
+  // e.g. "john.doe@gmail.com" → "John Doe"
+  const displayName = cashierName
+    || cashierEmail
+        .split('@')[0]
+        .replace(/[._-]/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
 
   const handlePrint = () => {
     setIsPrinting(true);
@@ -84,7 +94,7 @@ const ReceiptPrinter: React.FC<ReceiptProps> = ({
           <div style="margin-bottom: 12px; line-height: 1.7; font-size: 11px;">
             <div class="row"><span>Order #:</span><span>${orderId.slice(0, 8).toUpperCase()}</span></div>
             <div class="row"><span>Date:</span><span>${new Date(date).toLocaleString('en-KE', { dateStyle: 'short', timeStyle: 'short' })}</span></div>
-            <div class="row"><span>Cashier:</span><span>${cashierEmail}</span></div>
+            <div class="row"><span>Cashier:</span><span>${displayName}</span></div>
             <div class="row"><span>Payment:</span><span>${paymentMethod.toUpperCase()}</span></div>
             ${transactionId ? `<div class="row" style="font-size:10px;color:#555;"><span>Txn ID:</span><span>${transactionId}</span></div>` : ''}
           </div>
@@ -184,7 +194,7 @@ const ReceiptPrinter: React.FC<ReceiptProps> = ({
           </div>
           <div className="flex justify-between mb-1">
             <span className="text-neutral-400">Cashier:</span>
-            <span className="truncate ml-2">{cashierEmail}</span>
+            <span className="truncate ml-2">{displayName}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-neutral-400">Payment:</span>
