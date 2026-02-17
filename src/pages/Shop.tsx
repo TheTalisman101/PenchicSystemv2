@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Product } from '../types';
 import { ShoppingCart, Plus, Minus, Store, AlertCircle, Search, Filter, X } from 'lucide-react';
 import { useStore } from '../store';
+import RecentlyViewed from '../components/RecentlyViewed';
 
 export default function Shop() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -144,6 +145,11 @@ export default function Shop() {
   return (
     <div className="min-h-screen bg-neutral-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Recently Viewed Products */}
+        <div className="mb-12">
+          <RecentlyViewed />
+        </div>
+
         {/* Search and Filter Bar */}
         <div className="mb-8 bg-white rounded-xl p-6 shadow-lg border border-neutral-200">
           {/* Error Message */}

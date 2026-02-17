@@ -41,7 +41,9 @@ const ProductDetails = () => {
 
         if (error) throw error;
         setProduct(data);
-        
+
+        useStore.getState().addViewedProduct(data);
+
         // Load discount information if user can see discounts
         if (canSeeDiscounts && data) {
           try {
