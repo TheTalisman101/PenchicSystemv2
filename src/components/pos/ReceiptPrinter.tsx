@@ -41,13 +41,16 @@ const ReceiptPrinter: React.FC<ReceiptProps> = ({
   const [isPrinting, setIsPrinting] = useState(false);
 
   const handlePrint = useReactToPrint({
-    content: () => receiptRef.current,
+    contentRef: receiptRef,
     documentTitle: `Receipt-${orderId.slice(0, 8)}`,
     onAfterPrint: () => {
       setIsPrinting(false);
       onPrintComplete?.();
     },
-    onBeforePrint: () => setIsPrinting(true),
+    onBeforePrint: () => {
+      setIsPrinting(true);
+      return Promise.resolve();
+    },
   });
 
   return (
@@ -120,9 +123,25 @@ const ReceiptPrinter: React.FC<ReceiptProps> = ({
         </div>
       </div>
 
-      {/* Hidden Print Version */}
-      <div style={{ display: 'none' }} ref={receiptRef}>
-        <div style={{ padding: '20px', fontFamily: 'monospace', maxWidth: '300px', backgroundColor: 'white', color: 'black' }}>
+      {/* Print Version — visually hidden but renderable by the browser print engine */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '-9999px',
+          left: '-9999px',
+          visibility: 'hidden',
+        }}
+      >
+        <div
+          ref={receiptRef}
+          style={{
+            padding: '20px',
+            fontFamily: 'monospace',
+            width: '300px',
+            backgroundColor: 'white',
+            color: 'black',
+          }}
+        >
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 5px 0' }}>PENCHIC FARM</h1>
             <p style={{ fontSize: '12px', margin: '0' }}>Sales Receipt</p>
@@ -164,18 +183,16 @@ const ReceiptPrinter: React.FC<ReceiptProps> = ({
               <span>Total</span>
             </div>
             {items.map((item, idx) => (
-              <div key={idx}>
-                <div style={{ marginBottom: '5px' }}>
-                  <div>{item.name}</div>
-                  <div style={{ fontSize: '9px', color: '#666', textAlign: 'right' }}>
-                    {item.quantity} × KES {item.price.toLocaleString('en-KE')} = KES {item.total.toLocaleString('en-KE')}
-                  </div>
-                  {item.discount > 0 && (
-                    <div style={{ fontSize: '9px', color: '#28a745' }}>
-                      Discount: -KES {(item.discount * item.quantity).toLocaleString('en-KE')}
-                    </div>
-                  )}
+              <div key={idx} style={{ marginBottom: '5px' }}>
+                <div>{item.name}</div>
+                <div style={{ fontSize: '9px', color: '#666', textAlign: 'right' }}>
+                  {item.quantity} × KES {item.price.toLocaleString('en-KE')} = KES {item.total.toLocaleString('en-KE')}
                 </div>
+                {item.discount > 0 && (
+                  <div style={{ fontSize: '9px', color: '#28a745' }}>
+                    Discount: -KES {(item.discount * item.quantity).toLocaleString('en-KE')}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -213,7 +230,7 @@ const ReceiptPrinter: React.FC<ReceiptProps> = ({
       {/* Action Buttons */}
       <div className="flex gap-3">
         <button
-          onClick={handlePrint}
+          onClick={() => handlePrint()}
           disabled={isPrinting}
           className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
         >
