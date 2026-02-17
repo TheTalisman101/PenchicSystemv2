@@ -387,7 +387,7 @@ const POSInterface = () => {
         };
       });
 
-      setCompletedOrder({ orderId: order.id, items: receiptItems, subtotal: subtotalAmount, discount: discountAmount, total: totalAmount, paymentMethod, cashierEmail: user?.email || '', date: new Date() });
+      setCompletedOrder({ orderId: order.id, items: receiptItems, subtotal: subtotalAmount, discount: discountAmount, total: totalAmount, paymentMethod, cashierEmail: user?.email || '', cashierName: (user as any)?.name || (user as any)?.full_name || undefined, date: new Date() });
       clearCart();
       setShowCheckout(false);
       setAppliedDiscounts([]);
