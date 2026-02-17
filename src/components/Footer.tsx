@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Facebook, Instagram, Twitter, MapPin, Phone, Mail, Clock, Leaf, ArrowUpRight } from 'lucide-react';
+import { Facebook, Instagram, Twitter, MapPin, Phone, Mail, Clock, Leaf, ArrowUpRight, ExternalLink } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -207,6 +207,83 @@ const Footer = () => {
           background: linear-gradient(90deg, transparent, #40916c 30%, #74c69d 50%, #40916c 70%, transparent);
           opacity: 0.6;
         }
+
+        /* ── Map section ── */
+        .footer-map-section {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 24px 48px;
+        }
+        .footer-map-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .footer-map-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.35);
+        }
+        .footer-map-ext {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #74c69d;
+          text-decoration: none;
+          padding: 6px 12px;
+          border: 1px solid rgba(116,198,157,0.25);
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          background: rgba(116,198,157,0.06);
+        }
+        .footer-map-ext:hover {
+          background: rgba(116,198,157,0.14);
+          border-color: rgba(116,198,157,0.45);
+        }
+        .footer-map-wrap {
+          position: relative;
+          border-radius: 16px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.08);
+          height: 260px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .footer-map-wrap iframe {
+          width: 100%;
+          height: 100%;
+          border: none;
+          display: block;
+          filter: saturate(0.85) brightness(0.88);
+          transition: filter 0.35s ease;
+        }
+        .footer-map-wrap:hover iframe {
+          filter: saturate(1) brightness(1);
+        }
+        .footer-map-wrap::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: rgba(10,28,18,0.18);
+          pointer-events: none;
+          transition: opacity 0.35s ease;
+          border-radius: 16px;
+        }
+        .footer-map-wrap:hover::after { opacity: 0; }
+        .footer-map-divider {
+          height: 1px;
+          background: rgba(255,255,255,0.06);
+          margin: 0 24px 0;
+        }
       `}</style>
 
       <footer className="footer no-print">
@@ -305,6 +382,35 @@ const Footer = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* ── Google Map ── */}
+        <div className="footer-map-divider" />
+        <div className="footer-map-section">
+          <div className="footer-map-header">
+            <div className="footer-map-label">
+              <MapPin size={12} />
+              Find us
+            </div>
+            <a
+              href="https://maps.google.com/?q=-0.303099,36.080025"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-map-ext"
+            >
+              <ExternalLink size={11} />
+              Open in Google Maps
+            </a>
+          </div>
+          <div className="footer-map-wrap">
+            <iframe
+              title="Penchic Farm Location"
+              src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3988.6!2d36.080025!3d-0.303099!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMCoxNycxMS4xIlMgMzXCsDU5JzQ0LjEiRQ!5e0!3m2!1sen!2ske!4v1700000000000!5m2!1sen!2ske"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
         </div>
 
