@@ -36,6 +36,13 @@ const categories = [
   },
 ];
 
+const stats = [
+  { value: '10+', label: 'Years of farming' },
+  { value: '500+', label: 'Happy customers' },
+  { value: '99%', label: 'Fresh daily' },
+  { value: '24h', label: 'Order processing' },
+];
+
 export default function Home() {
   const typedRef = useRef(null);
   const [showContact, setShowContact] = useState(false);
