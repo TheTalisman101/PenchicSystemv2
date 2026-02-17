@@ -195,12 +195,13 @@ const POSInterface = () => {
       const subtotalAmount = calculateSubtotal();
       const discountAmount = calculateDiscountTotal();
 
+      // Insert order with 'pending' status to satisfy the orders_status_check constraint
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert([
           {
             user_id: user?.id,
-            status: 'completed',
+            status: 'pending',
             total: totalAmount,
             cashier_id: user?.id
           }
@@ -269,6 +270,15 @@ const POSInterface = () => {
         ]);
 
       if (paymentError) throw paymentError;
+
+      // Update order to final status after payment is handled
+      const finalOrderStatus = paymentMethod === 'mpesa' ? 'pending' : 'completed';
+      const { error: statusError } = await supabase
+        .from('orders')
+        .update({ status: finalOrderStatus })
+        .eq('id', order.id);
+
+      if (statusError) throw statusError;
 
       for (const item of cart) {
         const newStock = item.product.stock - item.quantity;
