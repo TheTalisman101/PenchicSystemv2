@@ -12,23 +12,122 @@ import DiscountCalculator from '../../components/pos/DiscountCalculator';
 import ReceiptPrinter from '../../components/pos/ReceiptPrinter';
 import { Product, CartItem } from '../../types';
 
+// ── CartItemRow ────────────────────────────────────────────────────────────────
+interface CartItemRowProps {
+  item: CartItem;
+  onRemove:    (pid: string, vid?: string) => void;
+  onUpdateQty: (pid: string, vid: string | undefined, delta: number) => void;
+  onSetQty:    (pid: string, vid: string | undefined, qty: number) => void;
+}
+
+const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRowProps) => {
+  const [draft, setDraft] = useState(String(item.quantity));
+
+  useEffect(() => { setDraft(String(item.quantity)); }, [item.quantity]);
+
+  const commit = (raw: string) => {
+    const n       = parseInt(raw, 10);
+    const clamped = Math.max(1, Math.min(item.product.stock, isNaN(n) ? 1 : n));
+    onSetQty(item.product.id, item.variant?.id, clamped);
+    setDraft(String(clamped));
+  };
+
+  return (
+    <div className="bg-neutral-50 rounded-xl p-2.5 border border-neutral-100">
+      <div className="flex justify-between items-start mb-1.5 gap-2">
+        <h3 className="font-medium text-neutral-900 text-xs leading-snug flex-1">
+          {item.product.name}
+          {item.variant && (
+            <span className="text-neutral-400 font-normal"> · {item.variant.size}</span>
+          )}
+        </h3>
+        <button
+          onClick={() => onRemove(item.product.id, item.variant?.id)}
+          className="p-1 text-neutral-300 hover:text-red-500 active:text-red-600
+            transition-colors touch-manipulation flex-shrink-0"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        {/* Stepper + manual input */}
+        <div className="flex items-center border border-neutral-200 rounded-lg overflow-hidden bg-white
+          focus-within:border-green-400 focus-within:ring-1 focus-within:ring-green-400/20 transition-all">
+          <button
+            onClick={() => onUpdateQty(item.product.id, item.variant?.id, -1)}
+            disabled={item.quantity <= 1}
+            className="w-7 h-7 flex items-center justify-center text-neutral-400
+              hover:bg-neutral-100 hover:text-neutral-700 active:bg-neutral-200
+              transition-colors touch-manipulation disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <Minus className="w-3 h-3" />
+          </button>
+
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={item.product.stock}
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={e  => commit(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter')  (e.target as HTMLInputElement).blur();
+              if (e.key === 'Escape') { setDraft(String(item.quantity)); (e.target as HTMLInputElement).blur(); }
+            }}
+            onWheel={e => (e.target as HTMLInputElement).blur()}
+            className="w-9 h-7 text-center text-xs font-bold text-neutral-900 bg-transparent
+              border-none outline-none tabular-nums
+              [appearance:textfield]
+              [&::-webkit-outer-spin-button]:appearance-none
+              [&::-webkit-inner-spin-button]:appearance-none"
+          />
+
+          <button
+            onClick={() => onUpdateQty(item.product.id, item.variant?.id, 1)}
+            disabled={item.quantity >= item.product.stock}
+            className="w-7 h-7 flex items-center justify-center text-neutral-400
+              hover:bg-neutral-100 hover:text-neutral-700 active:bg-neutral-200
+              transition-colors touch-manipulation disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
+        </div>
+
+        <span className="font-bold text-xs text-neutral-900 tabular-nums flex-shrink-0">
+          KES {(item.product.price * item.quantity).toLocaleString()}
+        </span>
+      </div>
+
+      {item.quantity >= item.product.stock - 2 && item.product.stock > 0 && (
+        <p className="text-[10px] text-amber-500 font-medium mt-1.5">
+          Max: {item.product.stock} in stock
+        </p>
+      )}
+    </div>
+  );
+});
+CartItemRow.displayName = 'CartItemRow';
+
 // ── CartPanel ──────────────────────────────────────────────────────────────────
 interface CartPanelProps {
   cart: CartItem[];
-  onClose: () => void;
-  onClearCart: () => void;
-  onRemoveFromCart: (productId: string, variantId?: string) => void;
-  onUpdateQuantity: (productId: string, variantId: string | undefined, delta: number) => void;
+  onClose:           () => void;
+  onClearCart:       () => void;
+  onRemoveFromCart:  (productId: string, variantId?: string) => void;
+  onUpdateQuantity:  (productId: string, variantId: string | undefined, delta: number) => void;
+  onSetQuantity:     (productId: string, variantId: string | undefined, qty: number) => void;
   onDiscountApplied: (discounts: any[]) => void;
-  onCheckout: () => void;
-  userId?: string;
-  subtotal: number;
-  discountTotal: number;
-  total: number;
+  onCheckout:        () => void;
+  userId?:           string;
+  subtotal:          number;
+  discountTotal:     number;
+  total:             number;
 }
 
 const CartPanel = memo(({
-  cart, onClose, onClearCart, onRemoveFromCart, onUpdateQuantity,
+  cart, onClose, onClearCart, onRemoveFromCart, onUpdateQuantity, onSetQuantity,
   onDiscountApplied, onCheckout, userId, subtotal, discountTotal, total,
 }: CartPanelProps) => (
   <div className="h-full bg-white flex flex-col">
@@ -46,14 +145,16 @@ const CartPanel = memo(({
           {cart.length > 0 && (
             <button
               onClick={onClearCart}
-              className="text-xs text-red-500 hover:text-red-600 font-medium transition-colors touch-manipulation"
+              className="text-xs text-red-500 hover:text-red-600 font-medium
+                transition-colors touch-manipulation"
             >
               Clear all
             </button>
           )}
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 hover:bg-neutral-100 rounded-lg transition-colors touch-manipulation"
+            className="lg:hidden p-1.5 hover:bg-neutral-100 active:bg-neutral-200
+              rounded-lg transition-colors touch-manipulation"
           >
             <X className="w-4 h-4 text-neutral-500" />
           </button>
@@ -75,51 +176,20 @@ const CartPanel = memo(({
         <>
           <div className="p-2.5 space-y-1.5">
             {cart.map(item => (
-              <div
+              <CartItemRow
                 key={`${item.product.id}-${item.variant?.id || ''}`}
-                className="bg-neutral-50 rounded-xl p-2.5 border border-neutral-100"
-              >
-                <div className="flex justify-between items-start mb-1.5 gap-2">
-                  <h3 className="font-medium text-neutral-900 text-xs leading-snug flex-1">
-                    {item.product.name}
-                  </h3>
-                  <button
-                    onClick={() => onRemoveFromCart(item.product.id, item.variant?.id)}
-                    className="p-1 text-neutral-300 hover:text-red-500 active:text-red-600 transition-colors touch-manipulation flex-shrink-0"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => onUpdateQuantity(item.product.id, item.variant?.id, -1)}
-                      disabled={item.quantity <= 1}
-                      className="w-6 h-6 flex items-center justify-center bg-white border border-neutral-200
-                        rounded-lg hover:bg-neutral-100 active:bg-neutral-200 transition-colors
-                        touch-manipulation disabled:opacity-40"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="font-bold text-xs w-6 text-center tabular-nums">{item.quantity}</span>
-                    <button
-                      onClick={() => onUpdateQuantity(item.product.id, item.variant?.id, 1)}
-                      disabled={item.quantity >= item.product.stock}
-                      className="w-6 h-6 flex items-center justify-center bg-white border border-neutral-200
-                        rounded-lg hover:bg-neutral-100 active:bg-neutral-200 transition-colors
-                        touch-manipulation disabled:opacity-40"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <span className="font-bold text-xs text-neutral-900 tabular-nums">
-                    KES {(item.product.price * item.quantity).toLocaleString()}
-                  </span>
-                </div>
-              </div>
+                item={item}
+                onRemove={onRemoveFromCart}
+                onUpdateQty={onUpdateQuantity}
+                onSetQty={onSetQuantity}
+              />
             ))}
           </div>
-          <DiscountCalculator cartItems={cart} onDiscountApplied={onDiscountApplied} userId={userId} />
+          <DiscountCalculator
+            cartItems={cart}
+            onDiscountApplied={onDiscountApplied}
+            userId={userId}
+          />
         </>
       )}
     </div>
@@ -134,7 +204,9 @@ const CartPanel = memo(({
         {discountTotal > 0 && (
           <div className="flex justify-between text-xs">
             <span className="text-emerald-600">Discount</span>
-            <span className="font-medium text-emerald-600 tabular-nums">-KES {discountTotal.toLocaleString()}</span>
+            <span className="font-medium text-emerald-600 tabular-nums">
+              -KES {discountTotal.toLocaleString()}
+            </span>
           </div>
         )}
         <div className="flex justify-between text-sm font-bold border-t border-neutral-100 pt-2 mt-1">
@@ -145,8 +217,8 @@ const CartPanel = memo(({
       <button
         onClick={onCheckout}
         disabled={cart.length === 0}
-        className="w-full py-3 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white rounded-xl
-          transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+        className="w-full py-3 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white
+          rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed
           flex items-center justify-center gap-2 font-semibold touch-manipulation text-sm"
       >
         <CreditCard className="w-4 h-4" />
@@ -189,7 +261,6 @@ const POSInterface = () => {
   const [isFullscreen,     setIsFullscreen]     = useState(false);
   const [completedOrder,   setCompletedOrder]   = useState<any>(null);
   const [showReceipt,      setShowReceipt]      = useState(false);
-  // Bump counter — increments on each add to trigger FAB animation
   const [addBump,          setAddBump]          = useState(0);
 
   const [mpesaPhone,   setMpesaPhone]   = useState('');
@@ -197,61 +268,80 @@ const POSInterface = () => {
   const [cashTendered, setCashTendered] = useState('');
   const [cashError,    setCashError]    = useState('');
 
+  // ── Auth guard ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!user || (user.role !== 'admin' && user.role !== 'worker')) navigate('/');
+    if (!user || !['admin', 'worker'].includes(user.role)) navigate('/');
   }, [user, navigate]);
 
+  // ── Data ─────────────────────────────────────────────────────────────────────
   useEffect(() => { fetchProducts(); }, []);
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handler);
-    return () => document.removeEventListener('fullscreenchange', handler);
+    const h = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', h);
+    return () => document.removeEventListener('fullscreenchange', h);
   }, []);
 
   const fetchProducts = async () => {
     try {
-      const { data: productsData, error } = await supabase
+      const { data, error } = await supabase
         .from('products').select('*').gt('stock', 0).order('name');
       if (error) throw error;
       const now = new Date().toISOString();
       const { data: discounts } = await supabase.from('discounts').select('*')
         .lte('start_date', now).gte('end_date', now);
-      setProducts((productsData ?? []).map(p => ({
+      setProducts((data ?? []).map(p => ({
         ...p,
         discount: discounts?.find(d => d.product_id === p.id) || null,
       })));
-    } catch (err) { console.error('Error fetching products:', err); }
+    } catch (err) { console.error('fetchProducts:', err); }
     finally { setLoading(false); }
   };
 
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleAddToCart = useCallback((product: Product) => {
-    if (product.stock <= 0) { alert('Product out of stock'); return; }
+    if (product.stock <= 0) { alert('Out of stock'); return; }
     const existing = cart.find(i => i.product.id === product.id);
     if (existing && existing.quantity >= product.stock) {
       alert('Cannot exceed available stock'); return;
     }
     addToCart({ product, quantity: 1 });
-    // ── KEY FIX: bump FAB animation only — do NOT open the cart drawer
-    setAddBump(n => n + 1);
+    setAddBump(n => n + 1); // bump FAB only — do NOT open drawer
   }, [cart, addToCart]);
 
-  const handleDiscountApplied  = useCallback((d: any[]) => setAppliedDiscounts(d), []);
-  const handleRemoveFromCart   = useCallback((pid: string, vid?: string) => removeFromCart(pid, vid), [removeFromCart]);
-  const handleUpdateQuantity   = useCallback((pid: string, vid: string | undefined, delta: number) => updateCartQuantity(pid, vid, delta), [updateCartQuantity]);
-  const handleClearCart        = useCallback(() => clearCart(), [clearCart]);
-  const handleOpenCheckout     = useCallback(() => setShowCheckout(true), []);
-  const handleCloseMobileCart  = useCallback(() => setShowMobileCart(false), []);
+  const handleRemoveFromCart  = useCallback((pid: string, vid?: string) => removeFromCart(pid, vid), [removeFromCart]);
+  const handleUpdateQuantity  = useCallback((pid: string, vid: string | undefined, delta: number) => updateCartQuantity(pid, vid, delta), [updateCartQuantity]);
+  const handleSetQuantity     = useCallback((pid: string, vid: string | undefined, qty: number) => {
+    const existing = cart.find(i => i.product.id === pid && i.variant?.id === vid);
+    const delta    = qty - (existing?.quantity ?? 0);
+    if (delta !== 0) updateCartQuantity(pid, vid, delta);
+  }, [cart, updateCartQuantity]);
+  const handleClearCart       = useCallback(() => clearCart(), [clearCart]);
+  const handleOpenCheckout    = useCallback(() => setShowCheckout(true), []);
+  const handleCloseMobileCart = useCallback(() => setShowMobileCart(false), []);
+  const handleDiscountApplied = useCallback((d: any[]) => setAppliedDiscounts(d), []);
 
-  const calcSubtotal      = useCallback(() => cart.reduce((s, i) => s + i.product.price * i.quantity, 0), [cart]);
-  const calcDiscountTotal = useCallback(() => appliedDiscounts.reduce((s, d) => s + d.savings, 0), [appliedDiscounts]);
-  const calcTotal         = useCallback(() => calcSubtotal() - calcDiscountTotal(), [calcSubtotal, calcDiscountTotal]);
+  const handlePaymentMethodChange = useCallback((method: 'cash' | 'mpesa' | 'card') => {
+    setPaymentMethod(method);
+    setPhoneError(''); setMpesaPhone('');
+    setCashError('');  setCashTendered('');
+  }, []);
 
   const toggleFullscreen = useCallback(async () => {
     if (!document.fullscreenElement) await containerRef.current?.requestFullscreen().catch(console.error);
     else await document.exitFullscreen().catch(console.error);
   }, []);
 
+  // ── Totals ───────────────────────────────────────────────────────────────────
+  const subtotal      = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const discountTotal = appliedDiscounts.reduce((s, d) => s + d.savings, 0);
+  const total         = subtotal - discountTotal;
+
+  const cashNum    = Math.max(0, parseFloat(cashTendered.replace(/[^0-9.]/g, '')) || 0);
+  const cashChange = Math.max(0, cashNum - total);
+  const cashOk     = cashNum >= total && cashNum > 0;
+
+  // ── Phone helpers ─────────────────────────────────────────────────────────────
   const validatePhone = (p: string) => /^(254|0)?[17]\d{8}$/.test(p.replace(/\s/g, ''));
   const formatPhone   = (p: string) => {
     let c = p.replace(/\s/g, '');
@@ -261,27 +351,15 @@ const POSInterface = () => {
     return c;
   };
 
-  const handlePaymentMethodChange = useCallback((method: 'cash' | 'mpesa' | 'card') => {
-    setPaymentMethod(method);
-    setPhoneError(''); setMpesaPhone('');
-    setCashError('');  setCashTendered('');
-  }, []);
-
-  const subtotal      = calcSubtotal();
-  const discountTotal = calcDiscountTotal();
-  const total         = calcTotal();
-
-  const cashNum    = Math.max(0, parseFloat(cashTendered.replace(/[^0-9.]/g, '')) || 0);
-  const cashChange = Math.max(0, cashNum - total);
-  const cashOk     = cashNum >= total && cashNum > 0;
-
   const resetPaymentState = () => {
     setMpesaPhone(''); setPhoneError('');
     setCashTendered(''); setCashError('');
   };
 
+  // ── Checkout ─────────────────────────────────────────────────────────────────
   const handleCheckout = async () => {
     if (cart.length === 0) { alert('Cart is empty'); return; }
+
     if (paymentMethod === 'mpesa') {
       if (!mpesaPhone.trim()) { setPhoneError('Phone number required for M-Pesa'); return; }
       if (!validatePhone(mpesaPhone)) { setPhoneError('Invalid number. Use: 0712345678 or 254712345678'); return; }
@@ -321,7 +399,7 @@ const POSInterface = () => {
           const { data: mpesaData, error: mpesaErr } = await supabase.functions.invoke('mpesa-payment', {
             body: { orderId: order.id, phoneNumber: formatPhone(mpesaPhone), amount: Math.round(total) },
           });
-          if (mpesaErr || !mpesaData?.success) throw new Error(mpesaData?.message || 'M-Pesa initiation failed');
+          if (mpesaErr || !mpesaData?.success) throw new Error(mpesaData?.message || 'M-Pesa failed');
           mpesaReference = mpesaData.data?.CheckoutRequestID || null;
           paymentStatus  = 'pending';
           alert('Payment request sent. Enter your M-Pesa PIN to complete.');
@@ -334,8 +412,9 @@ const POSInterface = () => {
       }]);
       if (payErr) throw payErr;
 
-      const finalStatus = paymentMethod === 'mpesa' ? 'pending' : 'completed';
-      await supabase.from('orders').update({ status: finalStatus }).eq('id', order.id);
+      await supabase.from('orders')
+        .update({ status: paymentMethod === 'mpesa' ? 'pending' : 'completed' })
+        .eq('id', order.id);
 
       for (const item of cart) {
         const newStock = item.product.stock - item.quantity;
@@ -375,12 +454,13 @@ const POSInterface = () => {
       fetchProducts();
     } catch (err: any) {
       console.error('Checkout error:', err);
-      alert(err.message || 'Failed to process order. Please try again.');
+      alert(err.message || 'Failed to process order.');
     } finally {
       setProcessing(false);
     }
   };
 
+  // ── Derived ───────────────────────────────────────────────────────────────────
   const categories       = ['all', ...new Set(products.map(p => p.category))];
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -388,19 +468,21 @@ const POSInterface = () => {
   );
   const cashQuickAmounts = quickAmounts(total);
 
+  const cartPanelProps: CartPanelProps = {
+    cart, onClose: handleCloseMobileCart, onClearCart: handleClearCart,
+    onRemoveFromCart: handleRemoveFromCart, onUpdateQuantity: handleUpdateQuantity,
+    onSetQuantity: handleSetQuantity, onDiscountApplied: handleDiscountApplied,
+    onCheckout: handleOpenCheckout, userId: user?.id, subtotal, discountTotal, total,
+  };
+
+  // ── Loading ───────────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
       <div className="w-9 h-9 border-2 border-neutral-300 border-t-green-600 rounded-full animate-spin" />
     </div>
   );
 
-  const cartPanelProps = {
-    cart, onClose: handleCloseMobileCart, onClearCart: handleClearCart,
-    onRemoveFromCart: handleRemoveFromCart, onUpdateQuantity: handleUpdateQuantity,
-    onDiscountApplied: handleDiscountApplied, onCheckout: handleOpenCheckout,
-    userId: user?.id, subtotal, discountTotal, total,
-  };
-
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div ref={containerRef} className="min-h-screen bg-neutral-50">
       <div className="flex h-screen overflow-hidden">
@@ -408,7 +490,7 @@ const POSInterface = () => {
         {/* ── Product column ──────────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
-          {/* Header — compact on mobile */}
+          {/* Header */}
           <div className="bg-white border-b border-neutral-200 px-3 sm:px-4 py-2.5 flex-shrink-0">
             <div className="flex items-center justify-between mb-2.5">
               <h1 className="text-sm sm:text-base font-bold text-neutral-900">POS Terminal</h1>
@@ -418,8 +500,9 @@ const POSInterface = () => {
                 </span>
                 <button
                   onClick={toggleFullscreen}
-                  className="p-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 transition-colors touch-manipulation"
                   title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                  className="p-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
+                    transition-colors touch-manipulation"
                 >
                   {isFullscreen
                     ? <Minimize className="w-3.5 h-3.5 text-neutral-600" />
@@ -427,8 +510,9 @@ const POSInterface = () => {
                 </button>
                 <button
                   onClick={() => navigate('/admin/dashboard')}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
-                    text-neutral-700 rounded-lg transition-colors text-xs font-medium touch-manipulation"
+                  className="flex items-center gap-1 px-2 py-1.5 bg-neutral-100 hover:bg-neutral-200
+                    active:bg-neutral-300 text-neutral-700 rounded-lg transition-colors
+                    text-xs font-medium touch-manipulation"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Exit POS</span>
@@ -436,25 +520,28 @@ const POSInterface = () => {
               </div>
             </div>
 
-            {/* Search + filter row */}
+            {/* Search + filter */}
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5
+                  text-neutral-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search…"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm
-                    text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2
-                    focus:ring-green-600/[0.12] focus:border-green-400 transition-all"
+                  className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl
+                    text-sm text-neutral-900 placeholder:text-neutral-400
+                    focus:outline-none focus:ring-2 focus:ring-green-600/[0.12]
+                    focus:border-green-400 transition-all"
                 />
               </div>
               <select
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
-                className="px-2.5 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs sm:text-sm
-                  text-neutral-700 focus:outline-none focus:ring-2 focus:ring-green-600/[0.12]
+                className="px-2.5 py-2 bg-neutral-50 border border-neutral-200 rounded-xl
+                  text-xs sm:text-sm text-neutral-700
+                  focus:outline-none focus:ring-2 focus:ring-green-600/[0.12]
                   focus:border-green-400 transition-all min-w-0 max-w-[100px] sm:max-w-[120px]"
               >
                 {categories.map(c => (
@@ -466,10 +553,11 @@ const POSInterface = () => {
             </div>
           </div>
 
-          {/* ── Product grid ─────────────────────────────────────────────── */}
+          {/* Product grid */}
           <div className="flex-1 overflow-auto p-2 sm:p-3 lg:p-4">
             {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-2 lg:gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5
+                gap-1.5 sm:gap-2 lg:gap-3">
                 {filteredProducts.map(product => {
                   const hasDiscount     = !!product.discount;
                   const discountedPrice = hasDiscount
@@ -482,20 +570,26 @@ const POSInterface = () => {
                       key={product.id}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleAddToCart(product)}
-                      className={`
-                        bg-white rounded-xl border text-left relative
-                        hover:border-green-300 hover:shadow-sm transition-all touch-manipulation active:bg-neutral-50
-                        p-2 sm:p-2.5 lg:p-3
-                        ${inCart ? 'border-green-300 ring-1 ring-green-300/50' : 'border-neutral-200'}
-                      `}
+                      className={`bg-white rounded-xl border text-left relative
+                        hover:border-green-300 hover:shadow-sm active:bg-neutral-50
+                        transition-all touch-manipulation p-2 sm:p-2.5 lg:p-3
+                        ${inCart
+                          ? 'border-green-300 ring-1 ring-green-300/50'
+                          : 'border-neutral-200'
+                        }`}
                     >
+                      {/* Discount badge */}
                       {hasDiscount && (
-                        <div className="absolute top-1.5 right-1.5 z-10 bg-red-500 text-white px-1 py-0.5 rounded text-[9px] sm:text-[10px] font-bold leading-none">
+                        <div className="absolute top-1.5 right-1.5 z-10 bg-red-500 text-white
+                          px-1 py-0.5 rounded text-[9px] sm:text-[10px] font-bold leading-none">
                           -{product.discount.percentage}%
                         </div>
                       )}
+                      {/* In-cart qty badge */}
                       {inCart && (
-                        <div className="absolute top-1.5 left-1.5 z-10 bg-green-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold">
+                        <div className="absolute top-1.5 left-1.5 z-10 bg-green-600 text-white
+                          w-4 h-4 rounded-full flex items-center justify-center
+                          text-[9px] font-bold">
                           {inCart.quantity}
                         </div>
                       )}
@@ -505,7 +599,8 @@ const POSInterface = () => {
                           className="w-full h-full object-cover" loading="lazy"
                         />
                       </div>
-                      <h3 className="font-semibold text-neutral-900 text-[10px] sm:text-xs leading-snug mb-0.5 line-clamp-2">
+                      <h3 className="font-semibold text-neutral-900 text-[10px] sm:text-xs
+                        leading-snug mb-0.5 line-clamp-2">
                         {product.name}
                       </h3>
                       {hasDiscount ? (
@@ -541,16 +636,16 @@ const POSInterface = () => {
           </div>
         </div>
 
-        {/* ── Desktop cart sidebar ─────────────────────────────────────────── */}
+        {/* ── Desktop cart ────────────────────────────────────────────────── */}
         <div className="hidden lg:block w-72 xl:w-80 border-l border-neutral-200 flex-shrink-0">
           <CartPanel {...cartPanelProps} />
         </div>
       </div>
 
       {/*
-        ── Floating cart button (mobile only) ──────────────────────────────────
-        Always visible when cart has items. Does NOT auto-open on product tap.
-        Uses `addBump` key to trigger a spring bump animation on each add.
+        ── Floating cart button — mobile only ────────────────────────────────
+        Always visible when cart has items.
+        Product tap triggers bump animation only — does NOT open the drawer.
       */}
       <AnimatePresence>
         {cart.length > 0 && (
@@ -564,23 +659,24 @@ const POSInterface = () => {
             className="lg:hidden fixed z-40 touch-manipulation"
             style={{
               bottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
-              right: '1rem',
+              right:  '1rem',
             }}
           >
-            {/* Bump animation wrapper — re-mounts on each add */}
+            {/* Inner div re-mounts on each add → spring bump */}
             <motion.div
               key={addBump}
-              initial={addBump > 0 ? { scale: 1.25 } : { scale: 1 }}
+              initial={addBump > 0 ? { scale: 1.22 } : { scale: 1 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-              className="flex items-center gap-2.5 pl-3 pr-4 py-3 bg-green-600 hover:bg-green-700
-                active:bg-green-800 text-white rounded-full shadow-xl shadow-green-900/30
-                transition-colors"
+              className="flex items-center gap-2.5 pl-3 pr-4 py-3
+                bg-green-600 hover:bg-green-700 active:bg-green-800 text-white
+                rounded-full shadow-xl shadow-green-900/30 transition-colors"
             >
               <div className="relative">
                 <ShoppingCart className="w-4 h-4" />
-                <span className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 text-white rounded-full
-                  text-[9px] font-bold flex items-center justify-center border border-green-600">
+                <span className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 text-white
+                  rounded-full text-[9px] font-bold flex items-center justify-center
+                  border border-green-600">
                   {cart.length > 99 ? '99+' : cart.length}
                 </span>
               </div>
@@ -623,7 +719,8 @@ const POSInterface = () => {
         {showCheckout && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50
+              flex items-end sm:items-center justify-center sm:p-4"
           >
             <motion.div
               initial={{ y: '100%', opacity: 0 }}
@@ -634,7 +731,6 @@ const POSInterface = () => {
                 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
-              {/* Drag handle */}
               <div className="sm:hidden flex justify-center pt-2.5 pb-1">
                 <div className="w-8 h-1 bg-neutral-300 rounded-full" />
               </div>
@@ -659,7 +755,9 @@ const POSInterface = () => {
                   {discountTotal > 0 && (
                     <div className="flex justify-between text-xs">
                       <span className="text-emerald-600">Discount</span>
-                      <span className="font-medium text-emerald-600 tabular-nums">-KES {discountTotal.toLocaleString()}</span>
+                      <span className="font-medium text-emerald-600 tabular-nums">
+                        -KES {discountTotal.toLocaleString()}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm font-bold border-t border-neutral-200 pt-2 mt-1">
@@ -670,7 +768,8 @@ const POSInterface = () => {
 
                 {/* Payment method */}
                 <div className="mb-4">
-                  <label className="block text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+                  <label className="block text-[10px] font-semibold text-neutral-500
+                    uppercase tracking-wider mb-2">
                     Payment Method
                   </label>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -683,21 +782,20 @@ const POSInterface = () => {
                           key={method}
                           onClick={() => handlePaymentMethodChange(method)}
                           className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border-2
-                            transition-all touch-manipulation text-xs font-semibold ${
-                            active
+                            transition-all touch-manipulation text-xs font-semibold
+                            ${active
                               ? 'border-green-600 bg-green-600 text-white'
                               : 'border-neutral-200 bg-white text-neutral-600 hover:border-green-400 active:bg-neutral-50'
-                          }`}
+                            }`}
                         >
-                          <Icon className="w-4 h-4" />
-                          {label}
+                          <Icon className="w-4 h-4" />{label}
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Cash */}
+                {/* Cash inputs */}
                 <AnimatePresence>
                   {paymentMethod === 'cash' && (
                     <motion.div
@@ -709,7 +807,8 @@ const POSInterface = () => {
                     >
                       <div className="space-y-2.5 pt-1">
                         <div>
-                          <label className="block text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                          <label className="block text-[10px] font-semibold text-neutral-500
+                            uppercase tracking-wider mb-1.5">
                             Cash Received (KES)
                           </label>
                           <input
@@ -719,9 +818,8 @@ const POSInterface = () => {
                             onChange={e => { setCashTendered(e.target.value); setCashError(''); }}
                             className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl text-neutral-900
                               text-xl font-bold tabular-nums focus:outline-none focus:ring-2
-                              focus:ring-green-600/[0.12] focus:border-green-400 transition-all ${
-                              cashError ? 'border-red-400 bg-red-50' : 'border-neutral-200'
-                            }`}
+                              focus:ring-green-600/[0.12] focus:border-green-400 transition-all
+                              ${cashError ? 'border-red-400 bg-red-50' : 'border-neutral-200'}`}
                           />
                           {cashError && (
                             <p className="mt-1 flex items-center gap-1 text-xs text-red-600 font-medium">
@@ -738,11 +836,11 @@ const POSInterface = () => {
                                 key={amount}
                                 onClick={() => { setCashTendered(String(amount)); setCashError(''); }}
                                 className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border
-                                  transition-all touch-manipulation ${
-                                  cashNum === amount
+                                  transition-all touch-manipulation
+                                  ${cashNum === amount
                                     ? 'bg-green-600 text-white border-green-600'
                                     : 'bg-white text-neutral-700 border-neutral-200 hover:border-green-400 active:bg-neutral-50'
-                                }`}
+                                  }`}
                               >
                                 {amount === total ? 'Exact' : `KES ${amount.toLocaleString()}`}
                               </button>
@@ -756,19 +854,16 @@ const POSInterface = () => {
                               initial={{ opacity: 0, scale: 0.97 }}
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.97 }}
-                              className={`flex items-center justify-between p-3 rounded-xl border ${
-                                cashOk ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
-                              }`}
+                              className={`flex items-center justify-between p-3 rounded-xl border
+                                ${cashOk ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}
                             >
                               <div>
-                                <p className={`text-[10px] font-bold uppercase tracking-wider ${
-                                  cashOk ? 'text-emerald-600' : 'text-red-600'
-                                }`}>
+                                <p className={`text-[10px] font-bold uppercase tracking-wider
+                                  ${cashOk ? 'text-emerald-600' : 'text-red-600'}`}>
                                   {cashOk ? 'Change Due' : 'Insufficient'}
                                 </p>
-                                <p className={`text-2xl font-bold tabular-nums mt-0.5 ${
-                                  cashOk ? 'text-emerald-700' : 'text-red-700'
-                                }`}>
+                                <p className={`text-2xl font-bold tabular-nums mt-0.5
+                                  ${cashOk ? 'text-emerald-700' : 'text-red-700'}`}>
                                   {cashOk
                                     ? `KES ${cashChange.toLocaleString()}`
                                     : `-KES ${(total - cashNum).toLocaleString()}`}
@@ -798,7 +893,8 @@ const POSInterface = () => {
                       className="overflow-hidden mb-4"
                     >
                       <div className="pt-1">
-                        <label className="block text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                        <label className="block text-[10px] font-semibold text-neutral-500
+                          uppercase tracking-wider mb-1.5">
                           M-Pesa Phone Number
                         </label>
                         <input
@@ -807,9 +903,8 @@ const POSInterface = () => {
                           onChange={e => { setMpesaPhone(e.target.value); setPhoneError(''); }}
                           className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl text-neutral-900
                             focus:outline-none focus:ring-2 focus:ring-green-600/[0.12]
-                            focus:border-green-400 transition-all text-sm ${
-                            phoneError ? 'border-red-400 bg-red-50' : 'border-neutral-200'
-                          }`}
+                            focus:border-green-400 transition-all text-sm
+                            ${phoneError ? 'border-red-400 bg-red-50' : 'border-neutral-200'}`}
                           maxLength={12}
                         />
                         {phoneError && (
@@ -829,17 +924,18 @@ const POSInterface = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setShowCheckout(false); resetPaymentState(); }}
-                    className="flex-1 py-3 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 text-neutral-700
-                      rounded-xl font-semibold transition-colors touch-manipulation text-sm"
+                    className="flex-1 py-3 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
+                      text-neutral-700 rounded-xl font-semibold transition-colors
+                      touch-manipulation text-sm"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleCheckout}
                     disabled={processing || (paymentMethod === 'cash' && cashNum > 0 && !cashOk)}
-                    className="flex-1 py-3 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white rounded-xl
-                      font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                      touch-manipulation text-sm"
+                    className="flex-1 py-3 bg-green-600 hover:bg-green-700 active:bg-green-800
+                      text-white rounded-xl font-semibold transition-colors
+                      disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation text-sm"
                   >
                     {processing ? 'Processing…' : 'Confirm Payment'}
                   </button>
@@ -855,7 +951,8 @@ const POSInterface = () => {
         {showReceipt && completedOrder && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50
+              flex items-end sm:items-center justify-center sm:p-4"
           >
             <motion.div
               initial={{ y: '100%', opacity: 0 }}
@@ -880,8 +977,10 @@ const POSInterface = () => {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200 mb-4">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl
+                  border border-emerald-200 mb-4">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center
+                    justify-center flex-shrink-0">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
