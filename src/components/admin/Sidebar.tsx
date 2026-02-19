@@ -1,19 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Tag,
-  Users,
-  BarChart3,
-  Settings,
-  Store,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  Package2,
+  LayoutDashboard, Package, ShoppingCart, Tag, Users,
+  BarChart3, Settings, Store, X, ChevronLeft, ChevronRight,
+  LogOut, Package2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store';
@@ -27,24 +17,23 @@ interface SidebarProps {
 }
 
 // ── Nav config ─────────────────────────────────────────────────────────────────
-// Grouped sections improve scannability in long nav lists
 const NAV_GROUPS = [
   {
     id: 'overview',
     label: 'Overview',
     items: [
-      { icon: LayoutDashboard, label: 'Dashboard', path: '/admin',           exact: true },
-      { icon: BarChart3,       label: 'Analytics', path: '/admin/analytics'              },
+      { icon: LayoutDashboard, label: 'Dashboard', path: '/admin',          exact: true },
+      { icon: BarChart3,       label: 'Analytics', path: '/admin/analytics'             },
     ],
   },
   {
     id: 'store',
     label: 'Store',
     items: [
-      { icon: Package,      label: 'Products',          path: '/admin/products'          },
-      { icon: ShoppingCart, label: 'Orders',             path: '/admin/orders'            },
-      { icon: Tag,          label: 'Discounts & Offers', path: '/admin/discounts'         },
-      { icon: Package2,     label: 'Stock',              path: '/admin/stock-management'  },
+      { icon: Package,      label: 'Products',          path: '/admin/products'         },
+      { icon: ShoppingCart, label: 'Orders',             path: '/admin/orders'           },
+      { icon: Tag,          label: 'Discounts & Offers', path: '/admin/discounts'        },
+      { icon: Package2,     label: 'Stock',              path: '/admin/stock-management' },
     ],
   },
   {
@@ -57,7 +46,7 @@ const NAV_GROUPS = [
   },
 ] as const;
 
-// ── Tooltip (shared for collapsed items) ──────────────────────────────────────
+// ── Tooltip (collapsed desktop only) ──────────────────────────────────────────
 const CollapseTooltip: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="absolute left-full ml-3 z-50 pointer-events-none">
     <div className="
@@ -81,9 +70,17 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const user      = useStore((s) => s.user);
-  const setUser   = useStore((s) => s.setUser);
+  const user    = useStore((s) => s.user);
+  const setUser = useStore((s) => s.setUser);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // ── On mobile the sidebar is always full-width when open — never collapsed ──
+  // We detect mobile via a lazy-init state, same pattern as notifications.
+  const [isMobile] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 1024
+  );
+  // The effective collapsed state: only allow collapsing on desktop
+  const collapsed = isCollapsed && !isMobile;
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -98,34 +95,40 @@ const Sidebar: React.FC<SidebarProps> = ({
   const userInitial = user?.email?.charAt(0).toUpperCase() ?? 'A';
 
   return (
-    // Note: The mobile backdrop overlay lives in AdminLayout — no duplicate here.
     <motion.aside
-      animate={{ width: isCollapsed ? 72 : 264 }}
+      animate={{ width: collapsed ? 72 : 264 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className={[
-        // Mobile: fixed, positioned below header; Desktop: static, full height
-        'fixed lg:static left-0 top-16 lg:top-0',
-        'h-[calc(100vh-4rem)] lg:h-screen',
+        // ── Positioning ──────────────────────────────────────────────────────
+        // Mobile/tablet: fixed, slides in from left, sits below the header.
+        // Header is h-14 on mobile, h-16 on sm+, so top offset must match.
+        // Desktop (lg): static, full viewport height.
+        'fixed lg:static left-0',
+        'top-14 sm:top-16 lg:top-0',
+        'h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] lg:h-screen',
+        // ── Appearance ───────────────────────────────────────────────────────
         'bg-white border-r border-neutral-200/80',
         'z-50 lg:z-auto flex flex-col overflow-hidden',
         'shadow-xl lg:shadow-none',
-        // Mobile slide — CSS transition only on mobile (lg:transition-none avoids conflict with Framer Motion width)
+        // ── Mobile slide (CSS only — lg: uses Framer width animation) ────────
         isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         'transition-transform duration-300 ease-in-out lg:transition-none',
+        // ── iOS safe area ─────────────────────────────────────────────────────
+        'pb-[env(safe-area-inset-bottom)]',
       ].join(' ')}
     >
 
       {/* ── Brand header ────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-3 h-16 lg:h-[72px] border-b border-neutral-100 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 h-14 sm:h-[72px] border-b border-neutral-100 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {/* Logo mark — always visible */}
           <div className="w-8 h-8 bg-gradient-to-br from-neutral-700 to-neutral-900 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
             <Store className="w-4 h-4 text-white" />
           </div>
 
-          {/* Brand name — fades with expansion */}
+          {/* Brand name — hidden when collapsed */}
           <AnimatePresence mode="wait">
-            {!isCollapsed && (
+            {!collapsed && (
               <motion.span
                 key="brand"
                 initial={{ opacity: 0, x: -8 }}
@@ -140,24 +143,26 @@ const Sidebar: React.FC<SidebarProps> = ({
           </AnimatePresence>
         </div>
 
-        {/* Mobile: close */}
+        {/* Mobile: close button */}
         <button
           onClick={onMobileToggle}
-          className="lg:hidden p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+          className="lg:hidden p-2 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 active:bg-neutral-200 transition-colors"
+          aria-label="Close menu"
         >
           <X className="w-4 h-4" />
         </button>
 
-        {/* Desktop: collapse (only shown when expanded) */}
+        {/* Desktop: collapse toggle (expanded state) */}
         <AnimatePresence>
-          {!isCollapsed && (
+          {!collapsed && (
             <motion.button
-              key="collapse"
+              key="collapse-btn"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onToggleCollapse}
-              className="hidden lg:flex p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+              className="hidden lg:flex p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 active:bg-neutral-200 transition-colors"
+              aria-label="Collapse sidebar"
             >
               <ChevronLeft className="w-4 h-4" />
             </motion.button>
@@ -165,9 +170,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* Desktop: expand button (collapsed state) */}
+      {/* Desktop: expand button (collapsed state only) */}
       <AnimatePresence>
-        {isCollapsed && (
+        {collapsed && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -176,7 +181,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           >
             <button
               onClick={onToggleCollapse}
-              className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 active:bg-neutral-200 transition-colors"
+              aria-label="Expand sidebar"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -189,9 +195,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         {NAV_GROUPS.map((group, gi) => (
           <div key={group.id} className={gi > 0 ? 'mt-1' : ''}>
 
-            {/* Section label — expanded only */}
+            {/* Section label — visible when expanded */}
             <AnimatePresence>
-              {!isCollapsed && (
+              {!collapsed && (
                 <motion.p
                   key={`lbl-${group.id}`}
                   initial={{ opacity: 0 }}
@@ -206,7 +212,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </AnimatePresence>
 
             {/* Collapsed: thin divider instead of label */}
-            {isCollapsed && gi > 0 && (
+            {collapsed && gi > 0 && (
               <div className="mx-3 my-2.5 border-t border-neutral-100" />
             )}
 
@@ -221,21 +227,23 @@ const Sidebar: React.FC<SidebarProps> = ({
                     key={item.path}
                     to={item.path}
                     onClick={() => {
-                      // Close mobile drawer on nav
+                      // Close mobile drawer on navigation
                       if (typeof window !== 'undefined' && window.innerWidth < 1024) {
                         onMobileToggle();
                       }
                     }}
                     className={[
-                      'relative group flex items-center gap-3 rounded-xl min-h-[40px]',
+                      'relative group flex items-center gap-3 rounded-xl',
+                      // Slightly taller on mobile for easier tapping (min-h-[44px])
+                      'min-h-[44px] lg:min-h-[40px]',
                       'transition-all duration-150',
-                      isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5',
+                      collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5',
                       active
                         ? 'bg-primary text-white shadow-md shadow-primary/20'
-                        : 'text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100/90',
+                        : 'text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100/90 active:bg-neutral-100',
                     ].join(' ')}
                   >
-                    {/* Shared active indicator — slides between items via layoutId */}
+                    {/* Shared active indicator via layoutId */}
                     {active && (
                       <motion.div
                         layoutId="nav-active-bg"
@@ -248,14 +256,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <Icon
                       className={[
                         'flex-shrink-0 transition-transform duration-150',
-                        isCollapsed ? 'w-[18px] h-[18px]' : 'w-[17px] h-[17px]',
+                        collapsed ? 'w-[18px] h-[18px]' : 'w-[17px] h-[17px]',
                         !active && 'group-hover:scale-110',
                       ].join(' ')}
                     />
 
                     {/* Label */}
                     <AnimatePresence>
-                      {!isCollapsed && (
+                      {!collapsed && (
                         <motion.span
                           key={`span-${item.path}`}
                           initial={{ opacity: 0, x: -6 }}
@@ -269,8 +277,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                       )}
                     </AnimatePresence>
 
-                    {/* Tooltip (collapsed only) */}
-                    {isCollapsed && (
+                    {/* Tooltip — desktop collapsed only */}
+                    {collapsed && (
                       <CollapseTooltip>
                         <span className="text-xs font-medium">{item.label}</span>
                       </CollapseTooltip>
@@ -286,20 +294,19 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 border-t border-neutral-100 p-2 space-y-0.5">
 
-        {/* User info row */}
+        {/* User info */}
         <div className={[
           'relative group flex items-center gap-3 rounded-xl px-3 py-2.5',
-          'hover:bg-neutral-50 transition-colors',
-          isCollapsed ? 'justify-center px-2' : '',
+          'min-h-[44px] lg:min-h-[40px]',
+          'hover:bg-neutral-50 active:bg-neutral-100 transition-colors',
+          collapsed ? 'justify-center px-2' : '',
         ].join(' ')}>
-
-          {/* Gradient avatar with initials */}
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-neutral-600 to-neutral-900 flex items-center justify-center ring-2 ring-white shadow-sm flex-shrink-0">
             <span className="text-white text-[11px] font-semibold leading-none">{userInitial}</span>
           </div>
 
           <AnimatePresence>
-            {!isCollapsed && (
+            {!collapsed && (
               <motion.div
                 key="user-info"
                 initial={{ opacity: 0, x: -8 }}
@@ -318,7 +325,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
           </AnimatePresence>
 
-          {isCollapsed && (
+          {collapsed && (
             <CollapseTooltip>
               <p className="text-xs font-semibold">
                 {user?.role === 'admin' ? 'Administrator' : 'User'}
@@ -334,19 +341,20 @@ const Sidebar: React.FC<SidebarProps> = ({
           disabled={isLoggingOut}
           className={[
             'relative group w-full flex items-center gap-3 rounded-xl px-3 py-2.5',
-            'text-neutral-400 hover:text-red-600 hover:bg-red-50/80',
+            'min-h-[44px] lg:min-h-[40px]',
+            'text-neutral-400 hover:text-red-600 hover:bg-red-50/80 active:bg-red-50',
             'transition-all duration-150 disabled:opacity-40',
-            isCollapsed ? 'justify-center px-2' : '',
+            collapsed ? 'justify-center px-2' : '',
           ].join(' ')}
         >
           <LogOut className={[
             'flex-shrink-0 transition-transform duration-150',
-            isCollapsed ? 'w-[18px] h-[18px]' : 'w-4 h-4',
+            collapsed ? 'w-[18px] h-[18px]' : 'w-4 h-4',
             'group-hover:scale-110 group-hover:-translate-x-0.5',
           ].join(' ')} />
 
           <AnimatePresence>
-            {!isCollapsed && (
+            {!collapsed && (
               <motion.span
                 key="logout-label"
                 initial={{ opacity: 0, x: -6 }}
@@ -360,7 +368,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
           </AnimatePresence>
 
-          {isCollapsed && (
+          {collapsed && (
             <CollapseTooltip>
               <span className="text-xs font-medium">
                 {isLoggingOut ? 'Signing out…' : 'Sign Out'}
