@@ -197,18 +197,16 @@ const ReceiptPrinter: React.FC<ReceiptProps> = ({
             <span>TOTAL:</span><span>KES {total.toLocaleString()}</span>
           </div>
           {paymentMethod === 'cash' && cashTendered !== undefined && (
-            <>
-              <div className="border-t border-dashed border-neutral-700 pt-1.5 mt-1 space-y-1">
-                <div className="flex justify-between text-neutral-300">
-                  <span className="text-neutral-500">Cash Tendered:</span>
-                  <span>KES {cashTendered.toLocaleString()}</span>
-                </div>
-                <div className={`flex justify-between font-bold ${(change ?? 0) > 0 ? 'text-amber-400' : 'text-neutral-500'}`}>
-                  <span>Change:</span>
-                  <span>KES {(change ?? 0).toLocaleString()}</span>
-                </div>
+            <div className="border-t border-dashed border-neutral-700 pt-1.5 mt-1 space-y-1">
+              <div className="flex justify-between text-neutral-300">
+                <span className="text-neutral-500">Cash Tendered:</span>
+                <span>KES {cashTendered.toLocaleString()}</span>
               </div>
-            </>
+              <div className={`flex justify-between font-bold ${(change ?? 0) > 0 ? 'text-amber-400' : 'text-neutral-500'}`}>
+                <span>Change:</span>
+                <span>KES {(change ?? 0).toLocaleString()}</span>
+              </div>
+            </div>
           )}
         </div>
 
@@ -221,7 +219,7 @@ const ReceiptPrinter: React.FC<ReceiptProps> = ({
         <button
           onClick={handlePrint}
           disabled={isPrinting}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-neutral-900 hover:bg-neutral-800
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700
             text-white rounded-xl transition-colors disabled:opacity-50 font-semibold touch-manipulation text-sm"
         >
           <Printer className="w-4 h-4" />
