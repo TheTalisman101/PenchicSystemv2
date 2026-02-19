@@ -11,34 +11,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface PerformanceSettings {
-  enable_animations: boolean;
-  lazy_loading: boolean;
-  cache_duration: number;
-  batch_operations: boolean;
-  compress_images: boolean;
-  prefetch_data: boolean;
-  virtual_scrolling: boolean;
-  debounce_search: number;
+  enable_animations: boolean; lazy_loading: boolean; cache_duration: number;
+  batch_operations: boolean;  compress_images: boolean; prefetch_data: boolean;
+  virtual_scrolling: boolean; debounce_search: number;
 }
 interface DataSettings {
-  items_per_page: number;
-  auto_save_interval: number;
-  offline_mode: boolean;
-  sync_frequency: number;
-  backup_retention: number;
+  items_per_page: number; auto_save_interval: number; offline_mode: boolean;
+  sync_frequency: number; backup_retention: number;
 }
 interface NotificationSettings {
-  email_notifications: boolean;
-  push_notifications: boolean;
-  low_stock_alerts: boolean;
-  order_notifications: boolean;
-  system_alerts: boolean;
+  email_notifications: boolean; push_notifications: boolean;
+  low_stock_alerts: boolean;    order_notifications: boolean; system_alerts: boolean;
 }
 interface DisplaySettings {
   font_size: 'small' | 'medium' | 'large';
   layout_spacing: 'compact' | 'comfortable' | 'spacious';
-  sidebar_collapsed: boolean;
-  show_tooltips: boolean;
+  sidebar_collapsed: boolean; show_tooltips: boolean;
 }
 interface Toast { message: string; type: 'success' | 'error' }
 
@@ -63,55 +51,53 @@ const DEFAULT_DISPLAY: DisplaySettings = {
 
 // ── Static config ──────────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'performance',   label: 'Performance',   icon: Monitor      },
-  { id: 'data',          label: 'Data & Storage', icon: Database     },
-  { id: 'notifications', label: 'Notifications',  icon: Bell         },
-  { id: 'display',       label: 'Display',        icon: Layout       },
-  { id: 'system',        label: 'System',         icon: SettingsIcon },
+  { id: 'performance',   label: 'Performance',   shortLabel: 'Perf',   icon: Monitor      },
+  { id: 'data',          label: 'Data & Storage', shortLabel: 'Data',   icon: Database     },
+  { id: 'notifications', label: 'Notifications',  shortLabel: 'Notifs', icon: Bell         },
+  { id: 'display',       label: 'Display',        shortLabel: 'Display',icon: Layout       },
+  { id: 'system',        label: 'System',         shortLabel: 'System', icon: SettingsIcon },
 ] as const;
 type TabId = typeof TABS[number]['id'];
 
 const NOTIF_META: Record<keyof NotificationSettings, { icon: React.FC<any>; title: string; desc: string }> = {
-  email_notifications: { icon: Mail,         title: 'Email Notifications', desc: 'Receive notifications via email'          },
-  push_notifications:  { icon: Bell,         title: 'Push Notifications',  desc: 'Receive browser push notifications'       },
-  low_stock_alerts:    { icon: Package,      title: 'Low Stock Alerts',    desc: 'Get alerts when products run low'         },
-  order_notifications: { icon: ShoppingCart, title: 'Order Notifications', desc: 'Receive notifications for new orders'     },
-  system_alerts:       { icon: Shield,       title: 'System Alerts',       desc: 'Get maintenance and error alerts'         },
+  email_notifications: { icon: Mail,         title: 'Email Notifications', desc: 'Receive notifications via email'       },
+  push_notifications:  { icon: Bell,         title: 'Push Notifications',  desc: 'Receive browser push notifications'    },
+  low_stock_alerts:    { icon: Package,      title: 'Low Stock Alerts',    desc: 'Get alerts when products run low'      },
+  order_notifications: { icon: ShoppingCart, title: 'Order Notifications', desc: 'Notifications for new orders'          },
+  system_alerts:       { icon: Shield,       title: 'System Alerts',       desc: 'Get maintenance and error alerts'      },
 };
 
-// ── Reusable primitives ────────────────────────────────────────────────────────
+// ── Primitives ─────────────────────────────────────────────────────────────────
 const Toggle: React.FC<{
   checked: boolean; onChange: (v: boolean) => void; disabled?: boolean;
 }> = ({ checked, onChange, disabled }) => (
   <button
     type="button" role="switch" aria-checked={checked} disabled={disabled}
     onClick={() => onChange(!checked)}
-    className={`relative flex-shrink-0 w-10 h-[22px] rounded-full transition-colors duration-200
+    className={`relative flex-shrink-0 w-9 sm:w-10 h-5 sm:h-[22px] rounded-full transition-colors duration-200
       focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.08]
       ${checked ? 'bg-neutral-900' : 'bg-neutral-200'}
       ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
   >
-    <span className={`absolute top-[3px] w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-200 ${
-      checked ? 'left-[22px]' : 'left-[3px]'
+    <span className={`absolute top-[2px] sm:top-[3px] w-3.5 sm:w-4 h-3.5 sm:h-4 bg-white rounded-full shadow-sm transition-all duration-200 ${
+      checked ? 'left-[18px] sm:left-[22px]' : 'left-[3px]'
     }`} />
   </button>
 );
 
 const SettingRow: React.FC<{
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  noBorder?: boolean;
+  title: string; description: string;
+  children: React.ReactNode; noBorder?: boolean;
 }> = ({ icon: Icon, title, description, children, noBorder }) => (
-  <div className={`flex items-center justify-between py-4 ${noBorder ? '' : 'border-b border-neutral-100'}`}>
-    <div className="flex items-center gap-3 flex-1 mr-6 min-w-0">
-      <div className="w-8 h-8 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-neutral-500" />
+  <div className={`flex items-center justify-between py-3.5 sm:py-4 ${noBorder ? '' : 'border-b border-neutral-100'}`}>
+    <div className="flex items-center gap-2.5 sm:gap-3 flex-1 mr-3 sm:mr-6 min-w-0">
+      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
+        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-500" />
       </div>
       <div className="min-w-0">
-        <p className="text-sm font-medium text-neutral-900">{title}</p>
-        <p className="text-xs text-neutral-400 mt-0.5">{description}</p>
+        <p className="text-xs sm:text-sm font-medium text-neutral-900">{title}</p>
+        <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5 line-clamp-2">{description}</p>
       </div>
     </div>
     {children}
@@ -133,7 +119,7 @@ const NumberInput: React.FC<{
           const v = parseInt(e.target.value);
           if (!isNaN(v)) onChange(Math.max(min, Math.min(max, v)));
         }}
-        className={`w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-xl text-neutral-800 bg-white
+        className={`w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-200 rounded-xl text-neutral-800 bg-white
           focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all
           ${unit ? 'pr-10' : ''}`}
       />
@@ -150,15 +136,15 @@ const NumberInput: React.FC<{
 const SettingsSkeleton = () => (
   <div className="animate-pulse space-y-1">
     {Array.from({ length: 5 }).map((_, i) => (
-      <div key={i} className="flex items-center justify-between py-4 border-b border-neutral-100 last:border-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-neutral-200 rounded-lg flex-shrink-0" />
+      <div key={i} className="flex items-center justify-between py-3.5 sm:py-4 border-b border-neutral-100 last:border-0">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-neutral-200 rounded-lg flex-shrink-0" />
           <div className="space-y-1.5">
-            <div className="w-32 h-3.5 bg-neutral-200 rounded-full" />
-            <div className="w-52 h-2.5 bg-neutral-100 rounded-full" />
+            <div className="w-24 sm:w-32 h-3 sm:h-3.5 bg-neutral-200 rounded-full" />
+            <div className="w-40 sm:w-52 h-2 sm:h-2.5 bg-neutral-100 rounded-full" />
           </div>
         </div>
-        <div className="w-10 h-[22px] bg-neutral-200 rounded-full" />
+        <div className="w-9 sm:w-10 h-5 sm:h-[22px] bg-neutral-200 rounded-full" />
       </div>
     ))}
   </div>
@@ -210,7 +196,7 @@ const Settings = () => {
     setShowConfirm(false);
   };
 
-  // ── Load — merges saved data with defaults so new keys never go missing ────
+  // ── Load ───────────────────────────────────────────────────────────────────
   const loadSettings = () => {
     const load = <T extends object>(key: string, defaults: T): T => {
       try {
@@ -236,25 +222,18 @@ const Settings = () => {
       showToast(`${TABS.find(t => t.id === tab)?.label ?? tab} settings saved`, 'success');
     } catch {
       showToast('Failed to save settings', 'error');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
-  // ── Per-tab saves with DOM side effects ────────────────────────────────────
+  // ── Per-tab saves ──────────────────────────────────────────────────────────
   const savePerformance = () =>
     save('performance_settings', performance, 'performance', () => {
-      if (performance.enable_animations) {
-        document.documentElement.style.removeProperty('--animation-duration');
-      } else {
-        document.documentElement.style.setProperty('--animation-duration', '0s');
-      }
+      document.documentElement.style[performance.enable_animations
+        ? 'removeProperty' : 'setProperty']('--animation-duration', '0s');
     });
-
   const saveData          = () => save('data_settings',         data,          'data');
   const saveNotifications = () => save('notification_settings', notifications, 'notifications');
-
-  const saveDisplay = () =>
+  const saveDisplay       = () =>
     save('display_settings', display, 'display', () => {
       document.documentElement.style.fontSize =
         display.font_size === 'small' ? '14px' :
@@ -263,39 +242,28 @@ const Settings = () => {
 
   // ── System actions ─────────────────────────────────────────────────────────
   const clearCache = () => {
-    ['performance_settings', 'data_settings', 'notification_settings', 'display_settings']
+    ['performance_settings','data_settings','notification_settings','display_settings']
       .forEach(k => localStorage.removeItem(k));
     loadSettings();
     showToast('Cache cleared — settings restored to defaults', 'success');
   };
-
-  const refreshSystem = () => window.location.reload();
-
+  const refreshSystem  = () => window.location.reload();
   const exportSettings = () => {
     const blob = new Blob([JSON.stringify({
-      performance_settings:  performance,
-      data_settings:         data,
-      notification_settings: notifications,
-      display_settings:      display,
-      exported_at:           new Date().toISOString(),
+      performance_settings: performance, data_settings: data,
+      notification_settings: notifications, display_settings: display,
+      exported_at: new Date().toISOString(),
     }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');
-    a.href     = url;
-    a.download = `admin-settings-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = `admin-settings-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     showToast('Settings exported successfully', 'success');
   };
-
   const resetDefaults = () => {
-    setPerformance(DEFAULT_PERFORMANCE);
-    setData(DEFAULT_DATA);
-    setNotifications(DEFAULT_NOTIFICATION);
-    setDisplay(DEFAULT_DISPLAY);
-    ['performance_settings', 'data_settings', 'notification_settings', 'display_settings']
+    setPerformance(DEFAULT_PERFORMANCE); setData(DEFAULT_DATA);
+    setNotifications(DEFAULT_NOTIFICATION); setDisplay(DEFAULT_DISPLAY);
+    ['performance_settings','data_settings','notification_settings','display_settings']
       .forEach(k => localStorage.removeItem(k));
     document.documentElement.style.removeProperty('font-size');
     document.documentElement.style.removeProperty('--animation-duration');
@@ -304,33 +272,35 @@ const Settings = () => {
   };
 
   const SAVE_FN: Partial<Record<TabId, () => void>> = {
-    performance:   savePerformance,
-    data:          saveData,
-    notifications: saveNotifications,
-    display:       saveDisplay,
+    performance: savePerformance, data: saveData,
+    notifications: saveNotifications, display: saveDisplay,
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <AdminLayout title="Settings" subtitle="Configure system settings and preferences">
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
 
         {/* ── Tab navigation ────────────────────────────────────────────────── */}
         <div className="lg:w-52 flex-shrink-0">
 
-          {/* Mobile pills */}
-          <div className="flex lg:hidden overflow-x-auto gap-1.5 pb-1">
+          {/* Mobile — horizontal scrollable pills */}
+          <div className="flex lg:hidden overflow-x-auto gap-1.5 pb-1 -mx-0.5 px-0.5">
             {TABS.map(tab => {
               const active = activeTab === tab.id;
               const dirty  = dirtyTabs.has(tab.id);
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg whitespace-nowrap flex-shrink-0 transition-colors ${
+                  className={`relative flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex-shrink-0 transition-colors ${
                     active ? 'bg-neutral-900 text-white' : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
                   }`}>
-                  <tab.icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                  {dirty && <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${active ? 'bg-white/60' : 'bg-amber-400'}`} />}
+                  <tab.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                  {/* Short label saves space on small screens */}
+                  <span className="xs:hidden">{tab.shortLabel}</span>
+                  <span className="hidden xs:inline">{tab.label}</span>
+                  {dirty && (
+                    <span className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${active ? 'bg-white/60' : 'bg-amber-400'}`} />
+                  )}
                 </button>
               );
             })}
@@ -362,9 +332,9 @@ const Settings = () => {
 
           {/* Section header */}
           {activeTab !== 'system' && (
-            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
-              <div>
-                <h3 className="text-sm font-semibold text-neutral-900">
+            <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-neutral-100 gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-neutral-900 truncate">
                   {TABS.find(t => t.id === activeTab)?.label}
                 </h3>
                 {dirtyTabs.has(activeTab) && (
@@ -375,38 +345,40 @@ const Settings = () => {
                 <button
                   onClick={SAVE_FN[activeTab]}
                   disabled={saving || !dirtyTabs.has(activeTab)}
-                  className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white text-xs sm:text-sm font-medium rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm flex-shrink-0"
                 >
-                  {saving
-                    ? <><RefreshCw className="w-4 h-4 animate-spin" /> Saving…</>
-                    : <><Save className="w-4 h-4" /> Save Changes</>
-                  }
+                  {saving ? (
+                    <><RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                    <span className="hidden sm:inline">Saving…</span></>
+                  ) : (
+                    <><Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Save Changes</span>
+                    <span className="sm:hidden">Save</span></>
+                  )}
                 </button>
               )}
             </div>
           )}
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {loading ? <SettingsSkeleton /> : (
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.18 }}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
                 >
 
                   {/* ── Performance ───────────────────────────────────────── */}
                   {activeTab === 'performance' && (
                     <div>
                       {([
-                        { key: 'enable_animations', icon: Monitor,   title: 'Enable Animations', desc: 'Smooth transitions and micro-interactions'   },
-                        { key: 'lazy_loading',       icon: Database,  title: 'Lazy Loading',      desc: 'Load images and data only when visible'      },
-                        { key: 'batch_operations',   icon: Shield,    title: 'Batch Operations',  desc: 'Group database operations for efficiency'    },
-                        { key: 'compress_images',    icon: HardDrive, title: 'Compress Images',   desc: 'Automatically compress images on upload'     },
-                        { key: 'prefetch_data',      icon: Wifi,      title: 'Prefetch Data',     desc: 'Preload data likely to be requested next'    },
-                        { key: 'virtual_scrolling',  icon: Type,      title: 'Virtual Scrolling', desc: 'Optimise rendering of long lists and tables' },
+                        { key: 'enable_animations', icon: Monitor,   title: 'Enable Animations', desc: 'Smooth transitions and micro-interactions'    },
+                        { key: 'lazy_loading',       icon: Database,  title: 'Lazy Loading',      desc: 'Load images and data only when visible'       },
+                        { key: 'batch_operations',   icon: Shield,    title: 'Batch Operations',  desc: 'Group database operations for efficiency'     },
+                        { key: 'compress_images',    icon: HardDrive, title: 'Compress Images',   desc: 'Automatically compress images on upload'      },
+                        { key: 'prefetch_data',      icon: Wifi,      title: 'Prefetch Data',     desc: 'Preload data likely to be requested next'     },
+                        { key: 'virtual_scrolling',  icon: Type,      title: 'Virtual Scrolling', desc: 'Optimise rendering of long lists and tables'  },
                       ] as { key: keyof PerformanceSettings; icon: React.FC<any>; title: string; desc: string }[])
                         .map(({ key, icon, title, desc }, i, arr) => (
                           <SettingRow key={key} icon={icon} title={title} description={desc} noBorder={i === arr.length - 1}>
@@ -417,7 +389,7 @@ const Settings = () => {
                           </SettingRow>
                         ))
                       }
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-5 mt-2 border-t border-neutral-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-4 sm:pt-5 mt-2 border-t border-neutral-100">
                         <NumberInput
                           label="Cache Duration" unit="min"
                           value={performance.cache_duration} min={1} max={1440}
@@ -436,8 +408,8 @@ const Settings = () => {
 
                   {/* ── Data & Storage ────────────────────────────────────── */}
                   {activeTab === 'data' && (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
                           <label className="block text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
                             Items Per Page
@@ -445,7 +417,7 @@ const Settings = () => {
                           <select
                             value={data.items_per_page}
                             onChange={e => { setData(p => ({ ...p, items_per_page: parseInt(e.target.value) })); markDirty('data'); }}
-                            className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-xl text-neutral-800 bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all cursor-pointer"
+                            className="w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-200 rounded-xl text-neutral-800 bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all cursor-pointer"
                           >
                             {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n} items</option>)}
                           </select>
@@ -471,7 +443,7 @@ const Settings = () => {
                         />
                       </div>
                       <div className="border-t border-neutral-100 pt-2">
-                        <SettingRow icon={Wifi} title="Offline Mode" description="Enable offline functionality; syncs automatically when back online" noBorder>
+                        <SettingRow icon={Wifi} title="Offline Mode" description="Enable offline functionality; syncs when back online" noBorder>
                           <Toggle
                             checked={data.offline_mode}
                             onChange={v => { setData(p => ({ ...p, offline_mode: v })); markDirty('data'); }}
@@ -502,7 +474,9 @@ const Settings = () => {
 
                   {/* ── Display ───────────────────────────────────────────── */}
                   {activeTab === 'display' && (
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
+
+                      {/* Font Size */}
                       <div>
                         <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-2">Font Size</p>
                         <div className="grid grid-cols-3 gap-2">
@@ -513,12 +487,12 @@ const Settings = () => {
                           ] as const).map(opt => (
                             <button key={opt.value}
                               onClick={() => { setDisplay(p => ({ ...p, font_size: opt.value })); markDirty('display'); }}
-                              className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
+                              className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2.5 sm:py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
                                 display.font_size === opt.value
                                   ? 'border-neutral-900 bg-neutral-900 text-white'
                                   : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
                               }`}>
-                              <Type className="w-4 h-4" />
+                              <Type className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               <span className={opt.cls}>{opt.label}</span>
                             </button>
                           ))}
@@ -526,6 +500,7 @@ const Settings = () => {
                         <p className="text-[11px] text-neutral-400 mt-1.5">Applied to the entire admin interface on save</p>
                       </div>
 
+                      {/* Layout Spacing */}
                       <div>
                         <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-2">Layout Spacing</p>
                         <div className="grid grid-cols-3 gap-2">
@@ -536,7 +511,7 @@ const Settings = () => {
                           ] as const).map(opt => (
                             <button key={opt.value}
                               onClick={() => { setDisplay(p => ({ ...p, layout_spacing: opt.value })); markDirty('display'); }}
-                              className={`flex flex-col items-center gap-0.5 py-3 rounded-xl border-2 transition-all ${
+                              className={`flex flex-col items-center gap-0.5 py-2.5 sm:py-3 rounded-xl border-2 transition-all ${
                                 display.layout_spacing === opt.value
                                   ? 'border-neutral-900 bg-neutral-900 text-white'
                                   : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
@@ -551,13 +526,13 @@ const Settings = () => {
                       </div>
 
                       <div className="border-t border-neutral-100 pt-2">
-                        <SettingRow icon={Layout} title="Collapse Sidebar by Default" description="Start the admin panel with the sidebar collapsed">
+                        <SettingRow icon={Layout} title="Collapse Sidebar by Default" description="Start with the admin sidebar collapsed">
                           <Toggle
                             checked={display.sidebar_collapsed}
                             onChange={v => { setDisplay(p => ({ ...p, sidebar_collapsed: v })); markDirty('display'); }}
                           />
                         </SettingRow>
-                        <SettingRow icon={Volume2} title="Show Tooltips" description="Display helpful tooltips on hover across the interface" noBorder>
+                        <SettingRow icon={Volume2} title="Show Tooltips" description="Display helpful tooltips on hover" noBorder>
                           <Toggle
                             checked={display.show_tooltips}
                             onChange={v => { setDisplay(p => ({ ...p, show_tooltips: v })); markDirty('display'); }}
@@ -569,24 +544,26 @@ const Settings = () => {
 
                   {/* ── System ────────────────────────────────────────────── */}
                   {activeTab === 'system' && (
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
+
+                      {/* Status */}
                       <div>
-                        <h3 className="text-sm font-semibold text-neutral-900 mb-4">System Status</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <h3 className="text-sm font-semibold text-neutral-900 mb-3 sm:mb-4">System Status</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                           {([
-                            { icon: Database,  label: 'Database',    value: 'Connected',     ok: true  },
-                            { icon: Wifi,      label: 'Real-time',   value: 'Active',        ok: true  },
-                            { icon: HardDrive, label: 'Storage',     value: '2.4 MB / 1 GB', ok: null  },
-                            { icon: Shield,    label: 'Security',    value: 'Secure',        ok: true  },
+                            { icon: Database,  label: 'Database',  value: 'Connected',     ok: true  },
+                            { icon: Wifi,      label: 'Real-time', value: 'Active',        ok: true  },
+                            { icon: HardDrive, label: 'Storage',   value: '2.4 MB / 1 GB', ok: null  },
+                            { icon: Shield,    label: 'Security',  value: 'Secure',        ok: true  },
                           ] as const).map(({ icon: Icon, label, value, ok }) => (
-                            <div key={label} className="flex items-center justify-between p-4 bg-neutral-50 rounded-xl border border-neutral-200">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-white rounded-lg border border-neutral-200 flex items-center justify-center">
-                                  <Icon className="w-4 h-4 text-neutral-500" />
+                            <div key={label} className="flex items-center justify-between p-3.5 sm:p-4 bg-neutral-50 rounded-xl border border-neutral-200">
+                              <div className="flex items-center gap-2.5 sm:gap-3">
+                                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white rounded-lg border border-neutral-200 flex items-center justify-center">
+                                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-500" />
                                 </div>
-                                <p className="text-sm font-medium text-neutral-900">{label}</p>
+                                <p className="text-xs sm:text-sm font-medium text-neutral-900">{label}</p>
                               </div>
-                              <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                              <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold ${
                                 ok === true  ? 'bg-emerald-100 text-emerald-700' :
                                 ok === false ? 'bg-red-100 text-red-700'         :
                                                'bg-neutral-100 text-neutral-600'
@@ -596,22 +573,23 @@ const Settings = () => {
                         </div>
                       </div>
 
-                      <div className="border-t border-neutral-100 pt-5">
-                        <h3 className="text-sm font-semibold text-neutral-900 mb-4">System Actions</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* System actions */}
+                      <div className="border-t border-neutral-100 pt-4 sm:pt-5">
+                        <h3 className="text-sm font-semibold text-neutral-900 mb-3 sm:mb-4">System Actions</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                           {([
                             {
-                              icon: Database, label: 'Clear Cache', hint: 'Reset settings to defaults',
+                              icon: Database,  label: 'Clear Cache',       hint: 'Reset settings to defaults',
                               danger: false,
                               onClick: () => openConfirm('Remove all cached settings and reload defaults?', clearCache),
                             },
                             {
-                              icon: Download, label: 'Export Settings', hint: 'Download as JSON file',
+                              icon: Download,  label: 'Export Settings',   hint: 'Download as JSON file',
                               danger: false,
                               onClick: exportSettings,
                             },
                             {
-                              icon: RefreshCw, label: 'Refresh System', hint: 'Hard reload the application',
+                              icon: RefreshCw, label: 'Refresh System',    hint: 'Hard reload the application',
                               danger: false,
                               onClick: () => openConfirm('Reload the application? Unsaved changes will be lost.', refreshSystem),
                             },
@@ -622,19 +600,19 @@ const Settings = () => {
                             },
                           ]).map(({ icon: Icon, label, hint, danger, onClick }) => (
                             <button key={label} onClick={onClick}
-                              className={`flex items-center gap-3 p-4 rounded-xl border text-left group transition-all ${
+                              className={`flex items-center gap-2.5 sm:gap-3 p-3.5 sm:p-4 rounded-xl border text-left group transition-all ${
                                 danger
                                   ? 'bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300'
                                   : 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200 hover:border-neutral-300'
                               }`}>
-                              <div className={`w-8 h-8 bg-white rounded-lg border flex items-center justify-center flex-shrink-0 transition-colors ${
+                              <div className={`w-7 h-7 sm:w-8 sm:h-8 bg-white rounded-lg border flex items-center justify-center flex-shrink-0 transition-colors ${
                                 danger ? 'border-red-200 group-hover:border-red-300' : 'border-neutral-200 group-hover:border-neutral-300'
                               }`}>
-                                <Icon className={`w-4 h-4 ${danger ? 'text-red-500' : 'text-neutral-500'}`} />
+                                <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${danger ? 'text-red-500' : 'text-neutral-500'}`} />
                               </div>
-                              <div>
-                                <p className={`text-sm font-medium ${danger ? 'text-red-700' : 'text-neutral-900'}`}>{label}</p>
-                                <p className={`text-xs mt-0.5 ${danger ? 'text-red-400' : 'text-neutral-400'}`}>{hint}</p>
+                              <div className="min-w-0">
+                                <p className={`text-xs sm:text-sm font-medium ${danger ? 'text-red-700' : 'text-neutral-900'}`}>{label}</p>
+                                <p className={`text-[11px] sm:text-xs mt-0.5 ${danger ? 'text-red-400' : 'text-neutral-400'}`}>{hint}</p>
                               </div>
                             </button>
                           ))}
@@ -659,23 +637,23 @@ const Settings = () => {
               initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.92, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+              className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-sm shadow-2xl"
             >
-              <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-6 h-6 text-amber-500" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
               </div>
-              <h3 className="text-base font-semibold text-neutral-900 text-center">Confirm Action</h3>
-              <p className="text-sm text-neutral-500 text-center mt-1.5 mb-6">{confirmMsg}</p>
-              <div className="flex gap-3">
+              <h3 className="text-sm sm:text-base font-semibold text-neutral-900 text-center">Confirm Action</h3>
+              <p className="text-xs sm:text-sm text-neutral-500 text-center mt-1.5 mb-5 sm:mb-6">{confirmMsg}</p>
+              <div className="flex gap-2.5 sm:gap-3">
                 <button
                   onClick={() => { setShowConfirm(false); pendingAction.current = null; }}
-                  className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors"
+                  className="flex-1 px-4 py-2 sm:py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="flex-1 px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors"
+                  className="flex-1 px-4 py-2 sm:py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors"
                 >
                   Confirm
                 </button>
@@ -685,7 +663,7 @@ const Settings = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Spring toast ──────────────────────────────────────────────────────── */}
+      {/* ── Toast — full-width on mobile ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -693,24 +671,19 @@ const Settings = () => {
             animate={{ opacity: 1, y: 0,  scale: 1    }}
             exit={{    opacity: 0, y: 16, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className={`fixed bottom-6 right-6 z-[70] flex items-center gap-3 px-4 py-3 rounded-xl
+            className={`fixed bottom-4 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-[70]
+              flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl
               bg-white shadow-lg shadow-neutral-900/10 border ${
               toast.type === 'success' ? 'border-emerald-200' : 'border-red-200'
             }`}
           >
             {toast.type === 'success'
               ? <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-              : <AlertCircle className="w-4 h-4 text-red-500   flex-shrink-0" />
-            }
-            <span className={`text-sm font-medium ${
-              toast.type === 'success' ? 'text-emerald-700' : 'text-red-600'
-            }`}>
+              : <AlertCircle className="w-4 h-4 text-red-500   flex-shrink-0" />}
+            <span className={`text-sm font-medium flex-1 ${toast.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
               {toast.message}
             </span>
-            <button
-              onClick={() => setToast(null)}
-              className="ml-1 text-neutral-400 hover:text-neutral-600 transition-colors"
-            >
+            <button onClick={() => setToast(null)} className="ml-1 text-neutral-400 hover:text-neutral-600 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </motion.div>
