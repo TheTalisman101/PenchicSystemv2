@@ -18,7 +18,7 @@ const Footer = () => {
         *, *::before, *::after { box-sizing: border-box; }
 
         .ft {
-          background: #080f0b;
+          background: #0a1f16;
           border-top: 1px solid rgba(255,255,255,0.06);
           font-family: 'DM Sans', sans-serif;
           color: rgba(255,255,255,0.55);
@@ -146,9 +146,7 @@ const Footer = () => {
           display: flex; align-items: center; justify-content: space-between;
           margin-bottom: 18px; flex-wrap: wrap; gap: 12px;
         }
-        .ft-map-label {
-          display: flex; align-items: center; gap: 8px;
-        }
+        .ft-map-label { display: flex; align-items: center; gap: 8px; }
         .ft-map-label-icon {
           width: 28px; height: 28px; border-radius: 8px;
           background: rgba(82,183,136,0.1); border: 1px solid rgba(82,183,136,0.15);
