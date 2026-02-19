@@ -15,10 +15,8 @@ const Cart = () => {
   const navigate = useNavigate();
   const user = useStore((state) => state.user);
 
-  // Check if user can access cart (only admin and worker)
   const canUseCart = user && ['admin', 'worker'].includes(user.role);
 
-  // Redirect if user cannot access cart
   useEffect(() => {
     if (!canUseCart) {
       navigate('/');
@@ -29,12 +27,14 @@ const Cart = () => {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-neutral-400" />
-          <h2 className="text-2xl font-bold mb-2 text-neutral-900">Access Restricted</h2>
-          <p className="text-neutral-600 mb-4">Cart functionality is only available to staff members</p>
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-neutral-100 flex items-center justify-center">
+            <ShoppingBag className="w-10 h-10 text-neutral-400" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2 text-neutral-900 tracking-tight">Access Restricted</h2>
+          <p className="text-neutral-500 mb-6 text-sm">Cart functionality is only available to staff members</p>
           <button
             onClick={() => navigate('/')}
-            className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+            className="bg-neutral-900 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-neutral-700 transition-all duration-200"
           >
             Return Home
           </button>
@@ -60,12 +60,14 @@ const Cart = () => {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-neutral-400" />
-          <h2 className="text-2xl font-bold mb-2 text-neutral-900">Your cart is empty</h2>
-          <p className="text-neutral-600 mb-4">Add some items to your cart to get started</p>
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-neutral-100 flex items-center justify-center">
+            <ShoppingBag className="w-10 h-10 text-neutral-400" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2 text-neutral-900 tracking-tight">Your cart is empty</h2>
+          <p className="text-neutral-500 mb-6 text-sm">Add some items to your cart to get started</p>
           <button
             onClick={() => navigate('/shop')}
-            className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+            className="bg-neutral-900 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-neutral-700 transition-all duration-200"
           >
             Continue Shopping
           </button>
@@ -77,92 +79,135 @@ const Cart = () => {
   return (
     <div className="min-h-screen bg-neutral-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-neutral-200">
-          <div className="p-6 md:p-8">
-            <h1 className="text-3xl font-bold mb-8 text-neutral-900">Shopping Cart</h1>
+        {/* Header */}
+        <div className="mb-8 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-neutral-900 flex items-center justify-center">
+            <ShoppingBag className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight leading-none">Shopping Cart</h1>
+            <p className="text-neutral-500 text-sm mt-0.5">{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</p>
+          </div>
+        </div>
 
-            <div className="space-y-6">
-              {cartItems.map((item) => (
-                <div
-                  key={item.product.id}
-                  className="flex flex-col md:flex-row items-start md:items-center gap-4 bg-neutral-50 p-4 rounded-lg border border-neutral-200"
-                >
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Cart Items */}
+          <div className="lg:col-span-2 space-y-3">
+            {cartItems.map((item, index) => (
+              <div
+                key={item.product.id}
+                className="group bg-white rounded-2xl border border-neutral-200 p-4 flex items-center gap-4 hover:border-neutral-300 hover:shadow-sm transition-all duration-200"
+                style={{ animationDelay: `${index * 60}ms` }}
+              >
+                {/* Image */}
+                <div className="relative flex-shrink-0">
                   <img
                     src={item.product.image_url}
                     alt={item.product.name}
-                    className="w-24 h-24 object-cover rounded"
+                    className="w-20 h-20 object-cover rounded-xl bg-neutral-100"
                   />
-                  
-                  <div className="flex-grow">
-                    <h3 className="font-medium text-lg text-neutral-900">{item.product.name}</h3>
-                    <p className="text-neutral-600">
-                      KES {item.product.price.toLocaleString('en-KE')} each
-                    </p>
-                  </div>
+                </div>
 
-                  <div className="flex items-center bg-white rounded-lg border border-neutral-300">
+                {/* Info */}
+                <div className="flex-grow min-w-0">
+                  <h3 className="font-semibold text-neutral-900 truncate text-sm leading-tight">{item.product.name}</h3>
+                  <p className="text-neutral-500 text-xs mt-0.5">
+                    KES {item.product.price.toLocaleString('en-KE')} each
+                  </p>
+                  {item.variant && (
+                    <span className="inline-block mt-1.5 text-xs bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-md font-medium">
+                      {item.variant.size}
+                    </span>
+                  )}
+                </div>
+
+                {/* Controls */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {/* Quantity */}
+                  <div className="flex items-center bg-neutral-50 border border-neutral-200 rounded-xl overflow-hidden">
                     <button
                       onClick={() => updateCartQuantity(item.product.id, item.variant?.id, -1)}
-                      className="p-2 hover:bg-neutral-100 text-neutral-800 rounded-l-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-8 h-8 flex items-center justify-center hover:bg-neutral-200 text-neutral-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       disabled={item.quantity <= 1}
                     >
-                      <Minus className="w-4 h-4" />
+                      <Minus className="w-3 h-3" />
                     </button>
-                    <span className="w-12 text-center py-2 font-medium text-neutral-900">
+                    <span className="w-9 text-center text-sm font-semibold text-neutral-900 select-none">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => updateCartQuantity(item.product.id, item.variant?.id, 1)}
-                      className="p-2 hover:bg-neutral-100 text-neutral-800 rounded-r-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-8 h-8 flex items-center justify-center hover:bg-neutral-200 text-neutral-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       disabled={item.quantity >= item.product.stock}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-3 h-3" />
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <p className="font-medium text-neutral-900">
+                  {/* Subtotal */}
+                  <div className="w-24 text-right">
+                    <p className="font-bold text-neutral-900 text-sm">
                       KES {(item.product.price * item.quantity).toLocaleString('en-KE')}
                     </p>
-                    <button
-                      onClick={() => removeFromCart(item.product.id, item.variant?.id)}
-                      className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors"
-                      title="Remove item"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
                   </div>
+
+                  {/* Delete */}
+                  <button
+                    onClick={() => removeFromCart(item.product.id, item.variant?.id)}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
+                    title="Remove item"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
 
-            <div className="mt-8 pt-6 border-t border-neutral-200">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <button
-                  onClick={clearCart}
-                  className="px-6 py-2 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500"
-                >
-                  Clear Cart
-                </button>
+            {/* Clear cart */}
+            <button
+              onClick={clearCart}
+              className="text-sm text-neutral-400 hover:text-red-500 transition-colors py-2 flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear all items
+            </button>
+          </div>
 
-                <div className="text-right">
-                  <p className="text-neutral-600 mb-1">Total Amount:</p>
-                  <p className="text-3xl font-bold text-neutral-900">
+          {/* Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl border border-neutral-200 p-6 sticky top-6">
+              <h2 className="font-bold text-neutral-900 text-sm uppercase tracking-wider mb-5">Order Summary</h2>
+
+              <div className="space-y-3 mb-5">
+                {cartItems.map((item) => (
+                  <div key={item.product.id} className="flex justify-between text-sm">
+                    <span className="text-neutral-500 truncate pr-2">
+                      {item.product.name} <span className="text-neutral-400">×{item.quantity}</span>
+                    </span>
+                    <span className="text-neutral-700 font-medium flex-shrink-0">
+                      KES {(item.product.price * item.quantity).toLocaleString('en-KE')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-neutral-100 pt-4 mb-6">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-neutral-500 text-sm">Total</span>
+                  <span className="text-2xl font-bold text-neutral-900 tracking-tight">
                     KES {totalAmount.toLocaleString('en-KE')}
-                  </p>
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={handleCheckout}
-                  className="flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
-                  disabled={cartItems.length === 0}
-                >
-                  Proceed to Checkout
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
+              <button
+                onClick={handleCheckout}
+                className="w-full flex items-center justify-center gap-2 bg-neutral-900 text-white py-3.5 px-6 rounded-xl text-sm font-semibold hover:bg-neutral-700 active:scale-[0.98] transition-all duration-150 disabled:opacity-40"
+                disabled={cartItems.length === 0}
+              >
+                Proceed to Checkout
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
