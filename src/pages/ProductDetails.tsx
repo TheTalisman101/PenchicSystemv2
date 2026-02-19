@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Product } from '../types';
-import { ShoppingCart, Store, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Store, AlertCircle, ChevronLeft, Tag, Sparkles } from 'lucide-react';
 import { useStore } from '../store';
 import { useDiscounts } from '../hooks/useDiscounts';
 import { useInventoryVisibility } from '../hooks/useInventoryVisibility';
@@ -21,10 +21,7 @@ const ProductDetails = () => {
   const { getProductDiscount } = useDiscounts();
   const { canViewStock } = useInventoryVisibility(user?.role);
 
-  // All users can see discounts (guests and customers only)
   const canSeeDiscounts = !user || user.role === 'customer';
-  
-  // Determine if user can use cart (only admin and worker roles)
   const canUseCart = user && ['admin', 'worker'].includes(user.role);
 
   useEffect(() => {
@@ -32,19 +29,14 @@ const ProductDetails = () => {
       try {
         const { data, error } = await supabase
           .from('products')
-          .select(`
-            *,
-            product_variants(*)
-          `)
+          .select(`*, product_variants(*)`)
           .eq('id', id)
           .single();
 
         if (error) throw error;
         setProduct(data);
-
         useStore.getState().addViewedProduct(data);
 
-        // Load discount information if user can see discounts
         if (canSeeDiscounts && data) {
           try {
             const discountInfo = await getProductDiscount(data.id, 1);
@@ -77,23 +69,15 @@ const ProductDetails = () => {
       }
     };
 
-    if (id) {
-      fetchProduct();
-    }
+    if (id) fetchProduct();
   }, [id, canSeeDiscounts, user?.id]);
 
   const handleAddToCart = () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    
+    if (!user) { navigate('/login'); return; }
     if (!canUseCart) {
-      // Show message for customers/guests
       alert('Cart functionality is only available to staff members. Please contact our staff to make a purchase.');
       return;
     }
-
     if (!product) return;
 
     const selectedVariantData = selectedVariant
@@ -105,13 +89,7 @@ const ProductDetails = () => {
       return;
     }
 
-    addToCart({
-      product,
-      variant: selectedVariantData,
-      quantity
-    });
-
-    // Show success message and navigate
+    addToCart({ product, variant: selectedVariantData, quantity });
     alert(`${product.name} added to cart successfully!`);
     setTimeout(() => navigate('/cart'), 500);
   };
@@ -122,21 +100,22 @@ const ProductDetails = () => {
 
   const getStockDisplay = (stock: number) => {
     if (canViewStock) {
-      // Admin/Worker: Show exact stock numbers
-      if (stock <= 0) return { text: `Out of Stock (${stock})`, color: 'text-red-500' };
-      if (stock <= 5) return { text: `Low Stock (${stock} left)`, color: 'text-yellow-600' };
-      return { text: `In Stock (${stock} available)`, color: 'text-green-600' };
+      if (stock <= 0) return { text: `Out of Stock (${stock})`, color: 'text-red-500', dot: 'bg-red-500' };
+      if (stock <= 5) return { text: `Low Stock — only ${stock} left`, color: 'text-amber-600', dot: 'bg-amber-500' };
+      return { text: `In Stock (${stock} available)`, color: 'text-emerald-600', dot: 'bg-emerald-500' };
     } else {
-      // Guest/Customer: Show only status
-      if (stock <= 0) return { text: 'Out of Stock', color: 'text-red-500' };
-      return { text: 'In Stock', color: 'text-green-600' };
+      if (stock <= 0) return { text: 'Out of Stock', color: 'text-red-500', dot: 'bg-red-500' };
+      return { text: 'In Stock', color: 'text-emerald-600', dot: 'bg-emerald-500' };
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-neutral-200 border-t-neutral-900 animate-spin"></div>
+          <p className="text-sm text-neutral-400">Loading product...</p>
+        </div>
       </div>
     );
   }
@@ -144,7 +123,7 @@ const ProductDetails = () => {
   if (!product) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <p className="text-neutral-900 text-xl">Product not found</p>
+        <p className="text-neutral-400 text-lg">Product not found</p>
       </div>
     );
   }
@@ -154,170 +133,204 @@ const ProductDetails = () => {
   const stockDisplay = getStockDisplay(product.stock);
 
   return (
-    <div className="min-h-screen bg-neutral-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <div className="relative aspect-square">
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="w-full h-full object-cover rounded-lg"
-            />
+    <div className="min-h-screen bg-neutral-50">
+      {/* Back nav */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-0">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors group"
+        >
+          <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          Back
+        </button>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
+
+          {/* Product Image */}
+          <div className="relative">
+            <div className="aspect-square rounded-3xl overflow-hidden bg-neutral-100 shadow-sm">
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700 ease-out"
+              />
+            </div>
+            {/* Discount badge overlay on image */}
+            {hasDiscount && displayProduct.discount.type !== 'buy_x_get_y' && (
+              <div className="absolute top-4 left-4">
+                <span className="inline-flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                  <Tag className="w-3 h-3" />
+                  {displayProduct.discount.value}% OFF
+                </span>
+              </div>
+            )}
           </div>
 
-          <div className="space-y-6">
+          {/* Product Info */}
+          <div className="flex flex-col justify-center space-y-7">
+
+            {/* Category + Title */}
             <div>
-              <h1 className="text-3xl font-bold mb-2 text-neutral-900">{product.name}</h1>
-              <span className="inline-block bg-neutral-100 text-neutral-700 px-3 py-1 rounded-full text-sm font-medium mb-4">
+              <span className="inline-block text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-3">
                 {product.category}
               </span>
-              <p className="text-neutral-700">{product.description}</p>
+              <h1 className="text-4xl font-bold text-neutral-900 leading-tight tracking-tight">
+                {product.name}
+              </h1>
+              <p className="mt-4 text-neutral-500 leading-relaxed text-sm">
+                {product.description}
+              </p>
             </div>
 
-            <div className="border-t border-neutral-300 pt-6">
-              {/* Enhanced Pricing Section with Discount Display */}
+            {/* Divider */}
+            <div className="h-px bg-neutral-200" />
+
+            {/* Pricing */}
+            <div>
               {hasDiscount ? (
-                <div className="space-y-4">
-                  {displayProduct.discount.type === 'buy_x_get_y' ? (
-                    <div>
-                      {/* Regular price for BOGO */}
-                      <div className="text-center mb-4">
-                        <span className="text-4xl font-bold text-neutral-900">
-                          KES {displayProduct.discount.original_price.toLocaleString()}
-                        </span>
+                displayProduct.discount.type === 'buy_x_get_y' ? (
+                  <div>
+                    <p className="text-3xl font-bold text-neutral-900 mb-4">
+                      KES {displayProduct.discount.original_price.toLocaleString()}
+                    </p>
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                        <Sparkles className="w-5 h-5 text-white" />
                       </div>
-                      {/* BOGO Offer Display */}
-                      <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl p-6 border-2 border-green-300">
-                        <p className="text-green-800 font-bold text-center text-2xl">
-                          Buy {displayProduct.discount.buy_quantity} Get {displayProduct.discount.get_quantity} Free!
+                      <div>
+                        <p className="font-bold text-emerald-800">
+                          Buy {displayProduct.discount.buy_quantity} Get {displayProduct.discount.get_quantity} Free
                         </p>
-                        <p className="text-green-700 text-center text-lg mt-2">
-                          Special Promotional Offer
-                        </p>
+                        <p className="text-emerald-600 text-sm">Limited promotional offer</p>
                       </div>
                     </div>
-                  ) : (
-                    <div>
-                      {/* Discount Badge */}
-                      <div className="mb-4">
-                        <DiscountBadge
-                          type={displayProduct.discount.type}
-                          value={displayProduct.discount.value}
-                          size="large"
-                        />
-                      </div>
-                      
-                      {/* Discount Price Display: "Was X Now Y" Format */}
-                      <div className="text-center mb-4">
-                        <div className="text-lg text-neutral-500 mb-2">
-                          <span className="line-through">Was KES {displayProduct.discount.original_price.toLocaleString()}</span>
-                        </div>
-                        <div className="text-4xl font-bold text-red-600">
-                          Now KES {displayProduct.discount.discounted_price.toLocaleString()}
-                        </div>
-                      </div>
-                      
-                      {/* Savings Display */}
-                      <div className="bg-gradient-to-r from-red-100 to-pink-100 rounded-xl p-4 border-2 border-red-300">
-                        <p className="text-red-800 font-bold text-center text-xl">
-                          Save KES {displayProduct.discount.savings.toLocaleString()}
-                        </p>
-                        <p className="text-red-700 text-center text-lg">
-                          {displayProduct.discount.value}% OFF
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center">
-                  <span className="text-4xl font-bold text-primary">
-                    KES {product.price.toLocaleString()}
-                  </span>
-                </div>
-              )}
-
-              <div className={`flex items-center gap-2 mt-6 ${stockDisplay.color}`}>
-                <AlertCircle className="w-5 h-5" />
-                <span className="text-lg font-medium">{stockDisplay.text}</span>
-              </div>
-
-              {product.product_variants && product.product_variants.length > 0 && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-2 text-neutral-900">Size</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {product.product_variants.map((variant) => (
-                      <button
-                        key={variant.id}
-                        onClick={() => setSelectedVariant(variant.id)}
-                        className={`py-2 px-4 rounded-lg ${
-                          selectedVariant === variant.id
-                            ? 'bg-primary text-white'
-                            : 'bg-neutral-200 text-neutral-900 hover:bg-neutral-300'
-                        }`}
-                        disabled={variant.stock <= 0}
-                      >
-                        {variant.size}
-                      </button>
-                    ))}
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <div className="flex items-baseline gap-3 mb-1">
+                      <span className="text-4xl font-bold text-neutral-900">
+                        KES {displayProduct.discount.discounted_price.toLocaleString()}
+                      </span>
+                      <span className="text-lg text-neutral-400 line-through">
+                        KES {displayProduct.discount.original_price.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="mt-3 inline-flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-sm font-semibold">
+                      <Tag className="w-3.5 h-3.5" />
+                      You save KES {displayProduct.discount.savings.toLocaleString()}
+                    </div>
+                  </div>
+                )
+              ) : (
+                <p className="text-4xl font-bold text-neutral-900 tracking-tight">
+                  KES {product.price.toLocaleString()}
+                </p>
               )}
 
-              {canUseCart ? (
-                <div className="mt-6 space-y-4">
-                  <div className="flex items-center">
-                    <label className="block text-sm font-medium mr-4 text-neutral-900">Quantity:</label>
+              {/* Stock indicator */}
+              <div className="flex items-center gap-2 mt-4">
+                <span className={`w-2 h-2 rounded-full ${stockDisplay.dot} flex-shrink-0`}></span>
+                <span className={`text-sm font-medium ${stockDisplay.color}`}>
+                  {stockDisplay.text}
+                </span>
+              </div>
+            </div>
+
+            {/* Variants */}
+            {product.product_variants && product.product_variants.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-3">Size</p>
+                <div className="flex flex-wrap gap-2">
+                  {product.product_variants.map((variant) => (
+                    <button
+                      key={variant.id}
+                      onClick={() => setSelectedVariant(variant.id)}
+                      disabled={variant.stock <= 0}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all duration-150 ${
+                        selectedVariant === variant.id
+                          ? 'bg-neutral-900 text-white border-neutral-900'
+                          : variant.stock <= 0
+                          ? 'bg-neutral-50 text-neutral-300 border-neutral-200 cursor-not-allowed'
+                          : 'bg-white text-neutral-700 border-neutral-200 hover:border-neutral-400'
+                      }`}
+                    >
+                      {variant.size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Cart Actions */}
+            {canUseCart ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <label className="text-xs font-semibold uppercase tracking-widest text-neutral-400">Qty</label>
+                  <div className="flex items-center bg-white border border-neutral-200 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                      className="w-10 h-10 flex items-center justify-center hover:bg-neutral-50 text-neutral-600 transition-colors"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
                     <input
                       type="number"
                       min="1"
                       max={product.stock}
                       value={quantity}
                       onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-20 px-3 py-1 bg-white border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-primary focus:outline-none"
+                      className="w-14 text-center text-sm font-bold text-neutral-900 bg-transparent focus:outline-none"
                     />
+                    <button
+                      onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
+                      className="w-10 h-10 flex items-center justify-center hover:bg-neutral-50 text-neutral-600 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
                   </div>
+                </div>
 
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={product.stock <= 0}
-                    className={`w-full flex items-center justify-center py-3 px-8 rounded-lg text-lg font-medium ${
-                      product.stock > 0
-                        ? 'bg-primary text-white hover:bg-primary-dark'
-                        : 'bg-neutral-400 text-neutral-600 cursor-not-allowed'
-                    }`}
-                  >
-                    <ShoppingCart className="w-6 h-6 mr-2" />
-                    {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-6">
-                  {!user ? (
-                    <div className="text-center p-6 bg-neutral-100 rounded-xl">
-                      <p className="text-lg text-neutral-700 mb-4">Please login to purchase this item</p>
-                      <button
-                        onClick={() => navigate('/login')}
-                        className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary-dark transition-colors"
-                      >
-                        Login to Purchase
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-center p-6 bg-neutral-100 rounded-xl">
-                      <p className="text-lg text-neutral-700 mb-4">Contact our staff to purchase this item</p>
-                      <button
-                        onClick={openGoogleMaps}
-                        className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center mx-auto"
-                      >
-                        <Store className="w-5 h-5 mr-2" />
-                        Visit Our Store
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock <= 0}
+                  className={`w-full flex items-center justify-center gap-2.5 py-4 px-8 rounded-2xl text-sm font-bold transition-all duration-150 ${
+                    product.stock > 0
+                      ? 'bg-neutral-900 text-white hover:bg-neutral-700 active:scale-[0.98] shadow-lg shadow-neutral-900/10'
+                      : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'
+                  }`}
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                </button>
+              </div>
+            ) : (
+              <div>
+                {!user ? (
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6 text-center">
+                    <p className="text-neutral-600 text-sm mb-4">Sign in to purchase this item</p>
+                    <button
+                      onClick={() => navigate('/login')}
+                      className="bg-neutral-900 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-neutral-700 transition-all duration-150"
+                    >
+                      Login to Purchase
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6 text-center">
+                    <p className="text-neutral-600 text-sm mb-4">Visit us in-store to purchase this item</p>
+                    <button
+                      onClick={openGoogleMaps}
+                      className="bg-neutral-900 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-neutral-700 transition-all duration-150 flex items-center justify-center gap-2 mx-auto"
+                    >
+                      <Store className="w-4 h-4" />
+                      Get Directions
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
