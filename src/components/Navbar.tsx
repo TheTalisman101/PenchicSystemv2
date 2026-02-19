@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   ShoppingCart, User, Menu, X, Shield, Store,
@@ -15,28 +15,27 @@ const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location    = useLocation();
 
-  const user  = useStore(s => s.user);
-  const cart  = useStore(s => s.cart);
+  const user    = useStore(s => s.user);
+  const cart    = useStore(s => s.cart);
   const setUser = useStore(s => s.setUser);
 
-  const cartQty    = cart.reduce((a, i) => a + i.quantity, 0);
-  const isAdmin    = user?.role === 'admin';
-  const isStaff    = ['admin', 'worker'].includes(user?.role || '');
+  const cartQty = cart.reduce((a, i) => a + i.quantity, 0);
+  const isAdmin = user?.role === 'admin';
+  const isStaff = ['admin', 'worker'].includes(user?.role || '');
 
-  /* ── Derived display info ─────────────────────────────────────── */
   const displayName = user?.email
     ? user.email.split('@')[0]
         .replace(/[._-]/g, ' ')
         .replace(/\b\w/g, c => c.toUpperCase())
     : '';
-  const initials = displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-
+  const initials  = displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const roleLabel = isAdmin ? 'Admin' : user?.role === 'worker' ? 'Worker' : 'Customer';
   const roleDot   = isAdmin ? '#fbbf24' : user?.role === 'worker' ? '#74c69d' : '#a0b8aa';
 
-  /* ── Scroll shadow ────────────────────────────────────────────── */
+  /* ── Scroll listener ──────────────────────────────────────────── */
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    onScroll(); // set initial state
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -52,7 +51,10 @@ const Navbar = () => {
   }, []);
 
   /* ── Close on route change ────────────────────────────────────── */
-  useEffect(() => { setMenuOpen(false); setDropdownOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    setMenuOpen(false);
+    setDropdownOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     setDropdownOpen(false);
@@ -69,14 +71,43 @@ const Navbar = () => {
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
 
+        /* ── Root ── */
         .nb {
-          position: sticky; top: 0; z-index: 50;
+          position: fixed; top: 0; left: 0; right: 0; z-index: 50;
           font-family: 'DM Sans', sans-serif;
-          background: #0a1f15;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          transition: box-shadow .3s ease;
+
+          /* Transparent by default */
+          background: transparent;
+          border-bottom: 1px solid transparent;
+
+          /* Smooth transition for all visual properties */
+          transition:
+            background  .35s cubic-bezier(0.16,1,0.3,1),
+            border-color .35s cubic-bezier(0.16,1,0.3,1),
+            box-shadow  .35s cubic-bezier(0.16,1,0.3,1),
+            backdrop-filter .35s ease;
         }
-        .nb.scrolled { box-shadow: 0 4px 32px rgba(0,0,0,0.45); }
+
+        /* Scrolled state — solid + blur */
+        .nb.scrolled {
+          background: rgba(10, 31, 22, 0.96);
+          border-bottom-color: rgba(255,255,255,0.07);
+          box-shadow: 0 4px 32px rgba(0,0,0,0.45);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        /* Mobile menu matches scroll state */
+        .nb-mobile {
+          background: rgba(10,31,22,0.97);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          border-top: 1px solid rgba(255,255,255,0.06);
+          overflow: hidden;
+        }
+
+        /* ── Spacer so page content starts below the fixed bar ── */
+        .nb-spacer { height: 62px; }
 
         /* ── Inner bar ── */
         .nb-inner {
@@ -95,9 +126,8 @@ const Navbar = () => {
           width: 34px; height: 34px; border-radius: 10px;
           background: linear-gradient(135deg, #52b788, #2d6a4f);
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 2px 10px rgba(82,183,136,0.35);
+          box-shadow: 0 2px 10px rgba(82,183,136,0.35); flex-shrink: 0;
           transition: transform .22s cubic-bezier(0.16,1,0.3,1), box-shadow .22s;
-          flex-shrink: 0;
         }
         .nb-logo:hover .nb-logo-mark {
           transform: rotate(-8deg) scale(1.1);
@@ -124,23 +154,23 @@ const Navbar = () => {
           display: flex; align-items: center; gap: 6px;
           padding: 7px 13px; border-radius: 9px;
           font-size: 13px; font-weight: 500;
-          color: rgba(255,255,255,0.5);
+          color: rgba(255,255,255,0.65);
           text-decoration: none;
           transition: all .18s ease; white-space: nowrap;
           position: relative; border: 1px solid transparent;
         }
         .nb-link:hover {
-          color: rgba(255,255,255,0.88);
-          background: rgba(255,255,255,0.055);
+          color: #fff;
+          background: rgba(255,255,255,0.08);
         }
         .nb-link.active {
           color: #74c69d;
-          background: rgba(116,198,157,0.1);
-          border-color: rgba(116,198,157,0.12);
+          background: rgba(116,198,157,0.12);
+          border-color: rgba(116,198,157,0.15);
           font-weight: 600;
         }
 
-        /* Pill badges on links */
+        /* Pill badges */
         .nb-pill {
           font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 5px;
           letter-spacing: 0.8px; text-transform: uppercase; line-height: 1.4;
@@ -154,41 +184,52 @@ const Navbar = () => {
         }
         @media (min-width: 768px) { .nb-actions { display: flex; } }
 
-        /* Cart icon button */
+        /* Cart */
         .nb-cart {
           position: relative; display: flex; align-items: center; justify-content: center;
           width: 38px; height: 38px; border-radius: 10px; text-decoration: none;
-          color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.08);
+          color: rgba(255,255,255,0.7);
+          border: 1px solid rgba(255,255,255,0.12);
           transition: all .18s ease;
         }
         .nb-cart:hover {
-          color: #fff; background: rgba(255,255,255,0.07);
-          border-color: rgba(255,255,255,0.15);
+          color: #fff; background: rgba(255,255,255,0.1);
+          border-color: rgba(255,255,255,0.2);
         }
-        .nb-cart.active { color: #74c69d; border-color: rgba(116,198,157,0.25); background: rgba(116,198,157,0.08); }
+        .nb-cart.active {
+          color: #74c69d;
+          border-color: rgba(116,198,157,0.3);
+          background: rgba(116,198,157,0.1);
+        }
         .nb-cart-badge {
           position: absolute; top: -4px; right: -4px;
           min-width: 17px; height: 17px; border-radius: 9px;
-          background: #52b788; color: #0a1f15;
+          background: #52b788; color: #0a1f16;
           font-size: 10px; font-weight: 800;
           display: flex; align-items: center; justify-content: center;
-          padding: 0 4px; border: 2px solid #0a1f15;
+          padding: 0 4px; border: 2px solid transparent;
+          transition: border-color .35s ease;
         }
+        /* Badge border matches navbar bg on scroll */
+        .nb.scrolled .nb-cart-badge { border-color: rgba(10,31,22,0.96); }
 
-        /* User dropdown trigger */
+        /* User button */
         .nb-user-btn {
           display: flex; align-items: center; gap: 8px;
           padding: 5px 10px 5px 5px; border-radius: 10px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.09);
+          background: rgba(255,255,255,0.07);
+          border: 1px solid rgba(255,255,255,0.12);
           cursor: pointer; transition: all .18s ease;
           font-family: 'DM Sans', sans-serif;
         }
         .nb-user-btn:hover {
-          background: rgba(255,255,255,0.08);
-          border-color: rgba(255,255,255,0.16);
+          background: rgba(255,255,255,0.12);
+          border-color: rgba(255,255,255,0.2);
         }
-        .nb-user-btn.open { border-color: rgba(116,198,157,0.3); background: rgba(116,198,157,0.06); }
+        .nb-user-btn.open {
+          border-color: rgba(116,198,157,0.35);
+          background: rgba(116,198,157,0.08);
+        }
 
         .nb-avatar {
           width: 28px; height: 28px; border-radius: 8px;
@@ -200,24 +241,24 @@ const Navbar = () => {
         }
         .nb-user-meta { display: flex; flex-direction: column; align-items: flex-start; }
         .nb-user-name {
-          font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.85);
+          font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.9);
           max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3;
         }
         .nb-user-role {
           display: flex; align-items: center; gap: 4px;
-          font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); line-height: 1;
+          font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.4); line-height: 1;
         }
         .nb-user-role-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-        .nb-chevron { color: rgba(255,255,255,0.35); transition: transform .2s ease; }
+        .nb-chevron { color: rgba(255,255,255,0.4); transition: transform .2s ease; flex-shrink: 0; }
         .nb-chevron.open { transform: rotate(180deg); }
 
-        /* Dropdown panel */
+        /* Dropdown */
         .nb-dropdown {
           position: absolute; top: calc(100% + 10px); right: 0;
-          width: 230px; background: #111f16;
+          width: 230px; background: #0d2419;
           border: 1px solid rgba(255,255,255,0.1);
           border-radius: 16px; overflow: hidden;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3);
+          box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.3);
           z-index: 100;
         }
         .dd-header {
@@ -230,18 +271,17 @@ const Navbar = () => {
           width: 34px; height: 34px; border-radius: 10px;
           background: linear-gradient(135deg, #52b788, #1b4332);
           display: flex; align-items: center; justify-content: center;
-          font-size: 13px; font-weight: 700; color: #d8f3dc;
-          flex-shrink: 0;
+          font-size: 13px; font-weight: 700; color: #d8f3dc; flex-shrink: 0;
         }
-        .dd-name { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); margin-bottom: 2px; }
+        .dd-name  { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.92); margin-bottom: 2px; }
         .dd-email { font-size: 11px; color: rgba(255,255,255,0.35); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .dd-role-chip {
           display: inline-flex; align-items: center; gap: 5px; margin-top: 8px;
           padding: 3px 9px; border-radius: 6px; font-size: 10px; font-weight: 700;
           letter-spacing: 0.5px; text-transform: uppercase;
         }
-        .dd-role-chip.admin  { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
-        .dd-role-chip.worker { background: rgba(116,198,157,0.12); color: #74c69d; border: 1px solid rgba(116,198,157,0.2); }
+        .dd-role-chip.admin    { background: rgba(251,191,36,0.12);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+        .dd-role-chip.worker   { background: rgba(116,198,157,0.12); color: #74c69d; border: 1px solid rgba(116,198,157,0.2); }
         .dd-role-chip.customer { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.1); }
 
         .dd-section { padding: 6px; }
@@ -249,10 +289,10 @@ const Navbar = () => {
           display: flex; align-items: center; gap: 10px;
           width: 100%; padding: 10px 12px; border-radius: 10px;
           font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
-          color: rgba(255,255,255,0.6); background: none; border: none;
+          color: rgba(255,255,255,0.62); background: none; border: none;
           cursor: pointer; text-decoration: none; transition: all .14s ease; text-align: left;
         }
-        .dd-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); }
+        .dd-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.92); }
         .dd-item.danger { color: #f87171; }
         .dd-item.danger:hover { background: rgba(248,113,113,0.1); color: #ef4444; }
         .dd-sep { height: 1px; background: rgba(255,255,255,0.07); margin: 2px 6px; }
@@ -275,24 +315,23 @@ const Navbar = () => {
         .nb-ham {
           display: flex; align-items: center; justify-content: center;
           width: 38px; height: 38px; border-radius: 10px; background: none;
-          border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.65);
+          border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.75);
           cursor: pointer; transition: all .18s ease; flex-shrink: 0;
         }
-        .nb-ham:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .nb-ham:hover { background: rgba(255,255,255,0.1); color: #fff; }
         @media (min-width: 768px) { .nb-ham { display: none; } }
 
         /* ── Mobile menu ── */
-        .nb-mobile { background: #0c1a10; border-top: 1px solid rgba(255,255,255,0.06); overflow: hidden; }
         .nb-mobile-inner { padding: 10px 14px 18px; display: flex; flex-direction: column; gap: 2px; }
 
         .nm-link {
           display: flex; align-items: center; gap: 11px;
           padding: 12px 14px; border-radius: 11px;
-          font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.55);
+          font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.6);
           text-decoration: none; transition: all .15s ease; border: 1px solid transparent;
         }
-        .nm-link:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
-        .nm-link.active { color: #74c69d; background: rgba(116,198,157,0.08); border-color: rgba(116,198,157,0.12); font-weight: 600; }
+        .nm-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.06); }
+        .nm-link.active { color: #74c69d; background: rgba(116,198,157,0.09); border-color: rgba(116,198,157,0.13); font-weight: 600; }
         .nm-link-right { margin-left: auto; }
 
         .nm-sep { height: 1px; background: rgba(255,255,255,0.07); margin: 6px 2px; }
@@ -300,7 +339,7 @@ const Navbar = () => {
         .nm-user-card {
           display: flex; align-items: center; gap: 12px;
           padding: 12px 14px; border-radius: 12px;
-          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
           margin-bottom: 6px;
         }
         .nm-avatar {
@@ -309,8 +348,8 @@ const Navbar = () => {
           display: flex; align-items: center; justify-content: center;
           font-size: 14px; font-weight: 700; color: #d8f3dc; flex-shrink: 0;
         }
-        .nm-name { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.88); line-height: 1.3; }
-        .nm-email { font-size: 11px; color: rgba(255,255,255,0.35); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nm-name  { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.9); line-height: 1.3; }
+        .nm-email { font-size: 11px; color: rgba(255,255,255,0.38); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         .nm-logout {
           display: flex; align-items: center; gap: 11px;
@@ -329,9 +368,10 @@ const Navbar = () => {
           font-size: 14px; font-weight: 700; margin-top: 6px;
           box-shadow: 0 4px 16px rgba(45,106,79,0.3);
         }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
+
+      {/* Spacer keeps page layout correct since navbar is now fixed */}
+      <div className="nb-spacer no-print" />
 
       <nav className={`nb no-print ${scrolled ? 'scrolled' : ''}`}>
         <div className="nb-inner">
@@ -350,10 +390,8 @@ const Navbar = () => {
           {/* ── Desktop Links ── */}
           <nav className="nb-links">
             <Link to="/shop" className={`nb-link ${isActive('/shop') ? 'active' : ''}`}>
-              <Store size={13} strokeWidth={2} />
-              Shop
+              <Store size={13} strokeWidth={2} /> Shop
             </Link>
-
             {isAdmin && (
               <Link to="/admin" className={`nb-link ${isActive('/admin') ? 'active' : ''}`}>
                 <LayoutDashboard size={13} strokeWidth={2} />
@@ -361,7 +399,6 @@ const Navbar = () => {
                 <span className="nb-pill nb-pill-admin">Admin</span>
               </Link>
             )}
-
             {isStaff && (
               <Link to="/pos" className={`nb-link ${isActive('/pos') ? 'active' : ''}`}>
                 <Package size={13} strokeWidth={2} />
@@ -373,8 +410,6 @@ const Navbar = () => {
 
           {/* ── Desktop Actions ── */}
           <div className="nb-actions">
-
-            {/* Cart */}
             {isStaff && (
               <Link
                 to="/cart"
@@ -399,7 +434,6 @@ const Navbar = () => {
               </Link>
             )}
 
-            {/* User / Sign in */}
             {user ? (
               <div ref={dropdownRef} style={{ position: 'relative' }}>
                 <button
@@ -426,7 +460,6 @@ const Navbar = () => {
                       exit={{ opacity: 0, y: -10, scale: 0.96 }}
                       transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
                     >
-                      {/* Header */}
                       <div className="dd-header">
                         <div className="dd-avatar-row">
                           <div className="dd-avatar">{initials || <User size={15} />}</div>
@@ -440,19 +473,15 @@ const Navbar = () => {
                           {roleLabel}
                         </div>
                       </div>
-
-                      {/* Items */}
                       <div className="dd-section">
                         {isAdmin && (
                           <Link to="/admin" className="dd-item" onClick={() => setDropdownOpen(false)}>
-                            <LayoutDashboard size={14} />
-                            Admin Dashboard
+                            <LayoutDashboard size={14} /> Admin Dashboard
                           </Link>
                         )}
                         {isStaff && (
                           <Link to="/pos" className="dd-item" onClick={() => setDropdownOpen(false)}>
-                            <Package size={14} />
-                            POS Terminal
+                            <Package size={14} /> POS Terminal
                           </Link>
                         )}
                         {isStaff && (
@@ -467,13 +496,10 @@ const Navbar = () => {
                           </Link>
                         )}
                       </div>
-
                       <div className="dd-sep" />
-
                       <div className="dd-section">
                         <button className="dd-item danger" onClick={handleLogout}>
-                          <LogOut size={14} />
-                          Sign out
+                          <LogOut size={14} /> Sign out
                         </button>
                       </div>
                     </motion.div>
@@ -482,8 +508,7 @@ const Navbar = () => {
               </div>
             ) : (
               <Link to="/login" className="nb-signin">
-                <User size={14} />
-                Sign in
+                <User size={14} /> Sign in
               </Link>
             )}
           </div>
@@ -519,24 +544,20 @@ const Navbar = () => {
               transition={{ duration: 0.22, ease: 'easeInOut' }}
             >
               <div className="nb-mobile-inner">
-
                 <Link to="/shop" className={`nm-link ${isActive('/shop') ? 'active' : ''}`}>
                   <Store size={16} /> Shop
                 </Link>
-
                 {isAdmin && (
                   <Link to="/admin" className={`nm-link ${isActive('/admin') ? 'active' : ''}`}>
                     <LayoutDashboard size={16} /> Dashboard
                     <span className="nm-link-right nb-pill nb-pill-admin">Admin</span>
                   </Link>
                 )}
-
                 {isStaff && (
                   <Link to="/pos" className={`nm-link ${isActive('/pos') ? 'active' : ''}`}>
                     <Package size={16} /> POS Terminal
                   </Link>
                 )}
-
                 {isStaff && (
                   <Link to="/cart" className={`nm-link ${isActive('/cart') ? 'active' : ''}`}>
                     <ShoppingCart size={16} />
@@ -548,9 +569,7 @@ const Navbar = () => {
                     )}
                   </Link>
                 )}
-
                 <div className="nm-sep" />
-
                 {user ? (
                   <>
                     <div className="nm-user-card">
