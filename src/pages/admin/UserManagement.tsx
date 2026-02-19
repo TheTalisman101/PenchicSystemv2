@@ -15,21 +15,16 @@ type Role   = 'admin' | 'worker' | 'customer';
 type Status = 'active' | 'inactive' | 'suspended';
 
 interface UserProfile {
-  id: string;
-  email: string;
-  role: Role;
-  status: Status;
-  created_at: string;
-  last_login?: string;
-  orders?: [{ count: number }];
+  id: string; email: string; role: Role; status: Status;
+  created_at: string; last_login?: string; orders?: [{ count: number }];
 }
 interface Toast { message: string; type: 'success' | 'error' }
 
 // ── Role config ────────────────────────────────────────────────────────────────
 const ROLE_CFG: Record<Role, { label: string; cls: string; Icon: React.FC<any> }> = {
-  admin:    { label: 'Admin',    cls: 'bg-violet-50  text-violet-700  ring-1 ring-violet-200/60',  Icon: Crown      },
-  worker:   { label: 'Worker',   cls: 'bg-sky-50     text-sky-700     ring-1 ring-sky-200/60',     Icon: Briefcase  },
-  customer: { label: 'Customer', cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60', Icon: ShoppingBag},
+  admin:    { label: 'Admin',    cls: 'bg-violet-50  text-violet-700  ring-1 ring-violet-200/60',  Icon: Crown       },
+  worker:   { label: 'Worker',   cls: 'bg-sky-50     text-sky-700     ring-1 ring-sky-200/60',     Icon: Briefcase   },
+  customer: { label: 'Customer', cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60', Icon: ShoppingBag },
 };
 const ROLE_DESC: Record<Role, string> = {
   admin:    'Full system access and user management',
@@ -49,29 +44,41 @@ const fmtDate    = (iso: string) =>
 
 // ── Skeletons ──────────────────────────────────────────────────────────────────
 const StatSkeleton = () => (
-  <div className="bg-white rounded-xl border border-neutral-200 p-5 animate-pulse">
-    <div className="w-9 h-9 bg-neutral-200 rounded-xl mb-3" />
-    <div className="w-10 h-7 bg-neutral-200 rounded-lg mb-1.5" />
-    <div className="w-20 h-3 bg-neutral-100 rounded-full" />
+  <div className="bg-white rounded-xl border border-neutral-200 p-3.5 sm:p-5 animate-pulse">
+    <div className="w-7 h-7 sm:w-9 sm:h-9 bg-neutral-200 rounded-xl mb-2 sm:mb-3" />
+    <div className="w-10 h-5 sm:h-7 bg-neutral-200 rounded-lg mb-1 sm:mb-1.5" />
+    <div className="w-16 sm:w-20 h-2.5 sm:h-3 bg-neutral-100 rounded-full" />
   </div>
 );
+
+// RowSkeleton — hides Joined & Orders cells on mobile to match the responsive table
 const RowSkeleton = () => (
   <tr className="animate-pulse">
-    <td className="px-5 py-4">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-neutral-200 rounded-full flex-shrink-0" />
-        <div className="space-y-1.5">
-          <div className="w-44 h-3.5 bg-neutral-200 rounded-full" />
-          <div className="w-24 h-2.5 bg-neutral-100 rounded-full" />
+    <td className="px-3 sm:px-5 py-3 sm:py-4">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="w-7 h-7 sm:w-9 sm:h-9 bg-neutral-200 rounded-full flex-shrink-0" />
+        <div className="space-y-1 sm:space-y-1.5">
+          <div className="w-32 sm:w-44 h-3 sm:h-3.5 bg-neutral-200 rounded-full" />
+          <div className="w-20 sm:w-24 h-2 sm:h-2.5 bg-neutral-100 rounded-full" />
         </div>
       </div>
     </td>
-    <td className="px-5 py-4"><div className="w-24 h-6 bg-neutral-100 rounded-full" /></td>
-    <td className="px-5 py-4"><div className="w-24 h-3 bg-neutral-100 rounded-full" /></td>
-    <td className="px-5 py-4"><div className="w-8 h-6 bg-neutral-100 rounded-full" /></td>
-    <td className="px-5 py-4">
-      <div className="flex justify-end gap-2">
-        {Array.from({ length: 3 }).map((_, i) => <div key={i} className="w-7 h-7 bg-neutral-100 rounded-lg" />)}
+    <td className="px-3 sm:px-5 py-3 sm:py-4">
+      <div className="w-20 sm:w-24 h-5 sm:h-6 bg-neutral-100 rounded-full" />
+    </td>
+    {/* Joined — hidden on mobile */}
+    <td className="hidden sm:table-cell px-5 py-4">
+      <div className="w-24 h-3 bg-neutral-100 rounded-full" />
+    </td>
+    {/* Orders — hidden on mobile */}
+    <td className="hidden sm:table-cell px-5 py-4">
+      <div className="w-8 h-6 bg-neutral-100 rounded-full" />
+    </td>
+    <td className="px-3 sm:px-5 py-3 sm:py-4">
+      <div className="flex justify-end gap-1 sm:gap-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="w-6 h-6 sm:w-7 sm:h-7 bg-neutral-100 rounded-lg" />
+        ))}
       </div>
     </td>
   </tr>
@@ -79,7 +86,7 @@ const RowSkeleton = () => (
 
 // ── Form helpers ───────────────────────────────────────────────────────────────
 const inputCls = (err?: string) =>
-  `w-full px-3.5 py-2.5 border rounded-xl text-sm text-neutral-800 bg-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] transition-all ${
+  `w-full px-3 sm:px-3.5 py-2 sm:py-2.5 border rounded-xl text-sm text-neutral-800 bg-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] transition-all ${
     err ? 'border-red-300 bg-red-50/30' : 'border-neutral-200 focus:border-neutral-300'
   }`;
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
@@ -90,13 +97,11 @@ const UserManagement = () => {
   const [users,           setUsers]           = useState<UserProfile[]>([]);
   const [loadingUsers,    setLoadingUsers]    = useState(true);
   const [submitting,      setSubmitting]      = useState(false);
-  // Tracks which specific row is being updated inline — no full-page spinner
   const [updatingUserId,  setUpdatingUserId]  = useState<string | null>(null);
   const [searchTerm,      setSearchTerm]      = useState('');
   const [roleFilter,      setRoleFilter]      = useState<'all' | Role>('all');
   const [currentPage,     setCurrentPage]     = useState(1);
   const [usersPerPage]                        = useState(10);
-  // Sort is passed directly into fetchUsers to avoid stale-state bug
   const [sortBy,          setSortBy]          = useState('created_at');
   const [sortOrder,       setSortOrder]       = useState<'asc' | 'desc'>('desc');
   const [expandedUserId,  setExpandedUserId]  = useState<string | null>(null);
@@ -120,36 +125,26 @@ const UserManagement = () => {
     setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
   };
 
-  // ── fetchUsers — sort params passed directly to avoid async stale-state [web:135] ──
   const fetchUsers = async (field = sortBy, direction = sortOrder) => {
     setLoadingUsers(true);
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*, orders(count), created_at')
+        .from('profiles').select('*, orders(count), created_at')
         .order(field, { ascending: direction === 'asc' });
       if (error) throw error;
       setUsers((data ?? []).map(u => ({
-        ...u,
-        status:     u.status     ?? 'active',
-        last_login: u.last_login ?? u.created_at,
+        ...u, status: u.status ?? 'active', last_login: u.last_login ?? u.created_at,
       })));
     } catch (err) {
-      console.error(err);
-      showToast('Failed to load users', 'error');
-    } finally {
-      setLoadingUsers(false);
-    }
+      console.error(err); showToast('Failed to load users', 'error');
+    } finally { setLoadingUsers(false); }
   };
 
   const handleSort = (field: string) => {
     const newOrder = sortBy === field && sortOrder === 'asc' ? 'desc' : 'asc';
-    setSortBy(field);
-    setSortOrder(newOrder);
-    fetchUsers(field, newOrder); // ✅ pass directly — no stale state
+    setSortBy(field); setSortOrder(newOrder); fetchUsers(field, newOrder);
   };
 
-  // ── Optimistic role update — no confirm() [web:124] ───────────────────────
   const handleUpdateRole = async (userId: string, newRole: string) => {
     const prev = users.find(u => u.id === userId)?.role;
     setUsers(p => p.map(u => u.id === userId ? { ...u, role: newRole as Role } : u));
@@ -159,15 +154,11 @@ const UserManagement = () => {
       if (error) throw error;
       showToast(`Role changed to ${newRole}`, 'success');
     } catch (err: any) {
-      // Revert on failure
       setUsers(p => p.map(u => u.id === userId ? { ...u, role: prev! } : u));
       showToast(err.message ?? 'Failed to update role', 'error');
-    } finally {
-      setUpdatingUserId(null);
-    }
+    } finally { setUpdatingUserId(null); }
   };
 
-  // ── Optimistic status toggle — no alert() ────────────────────────────────
   const handleStatusToggle = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     setUsers(p => p.map(u => u.id === userId ? { ...u, status: newStatus as Status } : u));
@@ -179,12 +170,9 @@ const UserManagement = () => {
     } catch (err: any) {
       setUsers(p => p.map(u => u.id === userId ? { ...u, status: currentStatus as Status } : u));
       showToast(err.message ?? 'Failed to update status', 'error');
-    } finally {
-      setUpdatingUserId(null);
-    }
+    } finally { setUpdatingUserId(null); }
   };
 
-  // ── Delete — no confirm(), uses custom dialog ─────────────────────────────
   const handleDeleteUser = async (userId: string) => {
     setSubmitting(true);
     try {
@@ -195,18 +183,15 @@ const UserManagement = () => {
       showToast('User deleted successfully', 'success');
     } catch (err: any) {
       showToast(err.message ?? 'Failed to delete user', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
 
-  // ── Add user ───────────────────────────────────────────────────────────────
   const validateAdd = (): boolean => {
     const e: Record<string, string> = {};
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!addForm.email)               e.email    = 'Email is required';
-    else if (!re.test(addForm.email)) e.email    = 'Enter a valid email address';
-    if (!addForm.password)            e.password = 'Password is required';
+    if (!addForm.email)                   e.email    = 'Email is required';
+    else if (!re.test(addForm.email))     e.email    = 'Enter a valid email address';
+    if (!addForm.password)                e.password = 'Password is required';
     else if (addForm.password.length < 6) e.password = 'Minimum 6 characters';
     setAddErrors(e);
     return Object.keys(e).length === 0;
@@ -234,12 +219,9 @@ const UserManagement = () => {
       showToast('User created successfully', 'success');
     } catch (err: any) {
       showToast(err.message ?? 'Failed to create user', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
 
-  // ── Edit user ──────────────────────────────────────────────────────────────
   const openEditModal = (u: UserProfile) => {
     setEditingUser(u);
     setEditForm({ email: u.email, role: u.role, status: u.status ?? 'active' });
@@ -256,7 +238,6 @@ const UserManagement = () => {
         .update({ email: editForm.email, role: editForm.role, status: editForm.status })
         .eq('id', editingUser.id);
       if (error) throw error;
-      // Optimistic local update
       setUsers(p => p.map(u =>
         u.id === editingUser.id
           ? { ...u, email: editForm.email, role: editForm.role, status: editForm.status }
@@ -267,12 +248,9 @@ const UserManagement = () => {
       showToast('User updated successfully', 'success');
     } catch (err: any) {
       showToast(err.message ?? 'Failed to update user', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
 
-  // ── Bulk actions ───────────────────────────────────────────────────────────
   const handleBulkStatus = async (newStatus: string) => {
     if (!selectedUsers.length) return;
     setSubmitting(true);
@@ -287,9 +265,7 @@ const UserManagement = () => {
       setSelectedUsers([]);
     } catch (err: any) {
       showToast(err.message ?? 'Failed to update users', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
 
   const toggleSelect = (id: string) =>
@@ -308,59 +284,70 @@ const UserManagement = () => {
   const workerCount   = users.filter(u => u.role === 'worker').length;
   const customerCount = users.filter(u => u.role === 'customer').length;
 
+  // ── Shared modal motion props ──────────────────────────────────────────────
+  const modalSheet = {
+    initial:    { scale: 0.93, opacity: 0, y: 40 },
+    animate:    { scale: 1,    opacity: 1, y: 0  },
+    exit:       { scale: 0.93, opacity: 0, y: 40 },
+    transition: { type: 'spring' as const, stiffness: 420, damping: 30 },
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <AdminLayout title="User Management" subtitle="Manage system users and permissions">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
 
         {/* ── Stat cards ────────────────────────────────────────────────────── */}
         {loadingUsers ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {Array.from({ length: 4 }).map((_, i) => <StatSkeleton key={i} />)}
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {([
               { icon: Users,       label: 'Total Users', value: users.length,   bg: 'bg-sky-50',     ic: 'text-sky-500'     },
               { icon: Crown,       label: 'Admins',      value: adminCount,     bg: 'bg-violet-50',  ic: 'text-violet-500'  },
               { icon: Briefcase,   label: 'Workers',     value: workerCount,    bg: 'bg-sky-50',     ic: 'text-sky-500'     },
               { icon: ShoppingBag, label: 'Customers',   value: customerCount,  bg: 'bg-emerald-50', ic: 'text-emerald-500' },
             ] as const).map(({ icon: Icon, label, value, bg, ic }) => (
-              <div key={label} className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm hover:border-neutral-300 transition-all">
-                <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center mb-3`}>
-                  <Icon className={`w-4 h-4 ${ic}`} />
+              <div key={label} className="bg-white rounded-xl border border-neutral-200 p-3.5 sm:p-5 shadow-sm hover:border-neutral-300 transition-all">
+                <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl ${bg} flex items-center justify-center mb-2 sm:mb-3`}>
+                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${ic}`} />
                 </div>
-                <p className="text-2xl font-bold text-neutral-900 tabular-nums">{value}</p>
-                <p className="text-xs text-neutral-400 mt-0.5 font-medium">{label}</p>
+                <p className="text-lg sm:text-2xl font-bold text-neutral-900 tabular-nums leading-tight">{value}</p>
+                <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5 font-medium">{label}</p>
               </div>
             ))}
           </div>
         )}
 
         {/* ── Toolbar ───────────────────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex flex-col sm:flex-row gap-3 flex-1">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-              <input
-                type="text" placeholder="Search by email…" value={searchTerm}
-                onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-9 pr-9 py-2.5 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 placeholder:text-neutral-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all"
-              />
-              {searchTerm && (
-                <button onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
 
-            <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-xl px-3 shadow-sm">
-              <Filter className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+          {/* Search — full width on mobile */}
+          <div className="relative flex-1 sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-400 pointer-events-none" />
+            <input
+              type="text" placeholder="Search by email…" value={searchTerm}
+              onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-8 sm:pl-9 pr-8 sm:pr-9 py-2 sm:py-2.5 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 placeholder:text-neutral-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all"
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors">
+                <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter + Bulk — 2-col grid on mobile, flex row on sm+ */}
+          <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-white border border-neutral-200 rounded-xl px-2.5 sm:px-3 shadow-sm">
+              <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-400 flex-shrink-0" />
               <select
                 value={roleFilter}
                 onChange={e => { setRoleFilter(e.target.value as 'all' | Role); setCurrentPage(1); }}
-                className="text-sm font-medium text-neutral-700 bg-transparent border-none outline-none py-2.5 pr-1 cursor-pointer"
+                className="w-full text-xs sm:text-sm font-medium text-neutral-700 bg-transparent border-none outline-none py-2 sm:py-2.5 pr-1 cursor-pointer"
               >
                 <option value="all">All roles</option>
                 <option value="admin">Admin</option>
@@ -371,20 +358,21 @@ const UserManagement = () => {
 
             <button
               onClick={() => { setBulkMode(!bulkMode); setSelectedUsers([]); }}
-              className={`flex items-center gap-2 px-3.5 py-2.5 text-sm font-medium rounded-xl border transition-colors ${
+              className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-xl border transition-colors ${
                 bulkMode ? 'bg-neutral-900 text-white border-neutral-900' : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
               }`}
             >
-              <Users className="w-4 h-4" />
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Bulk
             </button>
           </div>
 
+          {/* Add User — full-width on mobile */}
           <button
             onClick={() => { setAddErrors({}); setShowAddModal(true); }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors shadow-sm flex-shrink-0"
+            className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-4 py-2 sm:py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs sm:text-sm font-medium rounded-xl transition-colors shadow-sm sm:flex-shrink-0 w-full sm:w-auto"
           >
-            <UserPlus className="w-4 h-4" />
+            <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Add User
           </button>
         </div>
@@ -394,22 +382,22 @@ const UserManagement = () => {
           {bulkMode && selectedUsers.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-              className="flex items-center justify-between bg-neutral-900 text-white rounded-xl px-5 py-3"
+              className="flex items-center justify-between bg-neutral-900 text-white rounded-xl px-4 sm:px-5 py-2.5 sm:py-3"
             >
-              <p className="text-sm font-medium">
+              <p className="text-xs sm:text-sm font-medium">
                 <span className="font-bold">{selectedUsers.length}</span> selected
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2">
                 <button onClick={() => handleBulkStatus('active')} disabled={submitting}
-                  className="text-xs font-semibold px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors disabled:opacity-50">
+                  className="text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 sm:py-1.5 bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors disabled:opacity-50">
                   Activate
                 </button>
                 <button onClick={() => handleBulkStatus('inactive')} disabled={submitting}
-                  className="text-xs font-semibold px-3 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50">
+                  className="text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 sm:py-1.5 bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50">
                   Deactivate
                 </button>
                 <button onClick={() => setSelectedUsers([])}
-                  className="text-xs font-medium px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+                  className="text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-1 sm:py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
                   Clear
                 </button>
               </div>
@@ -419,7 +407,7 @@ const UserManagement = () => {
 
         {/* Results meta */}
         {!loadingUsers && (
-          <p className="text-xs text-neutral-400 font-medium -mt-2">
+          <p className="text-xs text-neutral-400 font-medium -mt-1 sm:-mt-2">
             <span className="text-neutral-700 font-semibold">{filteredUsers.length}</span>
             {' '}of {users.length} user{users.length !== 1 ? 's' : ''}
             {roleFilter !== 'all' && <> · <span className="capitalize">{roleFilter}s</span></>}
@@ -433,7 +421,7 @@ const UserManagement = () => {
               <thead className="bg-neutral-50/80 border-b border-neutral-200">
                 <tr>
                   {bulkMode && (
-                    <th className="pl-5 py-3.5 w-10">
+                    <th className="pl-3 sm:pl-5 py-3 sm:py-3.5 w-8 sm:w-10">
                       <input type="checkbox"
                         checked={selectedUsers.length === currentUsers.length && currentUsers.length > 0}
                         onChange={e => setSelectedUsers(e.target.checked ? currentUsers.map(u => u.id) : [])}
@@ -442,23 +430,28 @@ const UserManagement = () => {
                     </th>
                   )}
                   {[
-                    { label: 'User',   field: 'email',      Icon: Mail     },
-                    { label: 'Role',   field: 'role',       Icon: Shield   },
-                    { label: 'Joined', field: 'created_at', Icon: Calendar },
-                    { label: 'Orders', field: null,         Icon: null     },
-                  ].map(({ label, field, Icon }) => (
-                    <th key={label} className="text-left px-5 py-3.5 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+                    { label: 'User',   field: 'email',      Icon: Mail,     mobile: true  },
+                    { label: 'Role',   field: 'role',       Icon: Shield,   mobile: true  },
+                    { label: 'Joined', field: 'created_at', Icon: Calendar, mobile: false },
+                    { label: 'Orders', field: null,         Icon: null,     mobile: false },
+                  ].map(({ label, field, Icon, mobile }) => (
+                    <th key={label}
+                      className={`text-left px-3 sm:px-5 py-3 sm:py-3.5 text-[10px] sm:text-[11px] font-semibold text-neutral-400 uppercase tracking-wider ${
+                        !mobile ? 'hidden sm:table-cell' : ''
+                      }`}>
                       {field ? (
                         <button onClick={() => handleSort(field)}
-                          className="flex items-center gap-1.5 hover:text-neutral-700 transition-colors">
-                          {Icon && <Icon className="w-3.5 h-3.5" />}
+                          className="flex items-center gap-1 sm:gap-1.5 hover:text-neutral-700 transition-colors">
+                          {Icon && <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                           {label}
                           {sortBy === field && <span className="text-neutral-400">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
                         </button>
                       ) : label}
                     </th>
                   ))}
-                  <th className="text-right px-5 py-3.5 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Actions</th>
+                  <th className="text-right px-3 sm:px-5 py-3 sm:py-3.5 text-[10px] sm:text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
@@ -473,13 +466,12 @@ const UserManagement = () => {
                     return (
                       <React.Fragment key={user.id}>
                         <motion.tr
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
+                          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: Math.min(idx * 0.04, 0.28) }}
                           className={`transition-colors ${isExpanded ? 'bg-neutral-50/60' : 'hover:bg-neutral-50/40'}`}
                         >
                           {bulkMode && (
-                            <td className="pl-5 py-4">
+                            <td className="pl-3 sm:pl-5 py-3 sm:py-4">
                               <input type="checkbox"
                                 checked={selectedUsers.includes(user.id)}
                                 onChange={() => toggleSelect(user.id)}
@@ -489,31 +481,35 @@ const UserManagement = () => {
                           )}
 
                           {/* User */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${avatarCls(user.email)}`}>
+                          <td className="px-3 sm:px-5 py-3 sm:py-4">
+                            <div className="flex items-center gap-2.5 sm:gap-3">
+                              <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 ${avatarCls(user.email)}`}>
                                 {getInitial(user.email)}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-sm font-medium text-neutral-900 truncate max-w-[200px]">{user.email}</p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <p className="text-[10px] text-neutral-400 font-mono">{user.id.slice(0, 8)}…</p>
-                                  <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${
+                                <p className="text-xs sm:text-sm font-medium text-neutral-900 truncate max-w-[140px] sm:max-w-[200px]">
+                                  {user.email}
+                                </p>
+                                <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+                                  <p className="text-[9px] sm:text-[10px] text-neutral-400 font-mono hidden sm:block">
+                                    {user.id.slice(0, 8)}…
+                                  </p>
+                                  <span className={`inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold ${
                                     user.status === 'active' ? 'text-emerald-600' : 'text-red-500'
                                   }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'active' ? 'bg-emerald-500' : 'bg-red-400'}`} />
-                                    {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                                    <span className="capitalize">{user.status}</span>
                                   </span>
                                 </div>
                               </div>
                             </div>
                           </td>
 
-                          {/* Role — inline select for instant changes, optimistic + toast */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${roleCls}`}>
-                                <RoleIcon className="w-3 h-3" />
+                          {/* Role */}
+                          <td className="px-3 sm:px-5 py-3 sm:py-4">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold ${roleCls}`}>
+                                <RoleIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                 {ROLE_CFG[user.role]?.label ?? user.role}
                               </span>
                               <select
@@ -521,55 +517,53 @@ const UserManagement = () => {
                                 onChange={e => handleUpdateRole(user.id, e.target.value)}
                                 disabled={isUpdating}
                                 title="Change role"
-                                className="text-[11px] text-neutral-400 bg-transparent border-none outline-none cursor-pointer hover:text-neutral-700 transition-colors disabled:opacity-40"
+                                className="text-[10px] sm:text-[11px] text-neutral-400 bg-transparent border-none outline-none cursor-pointer hover:text-neutral-700 transition-colors disabled:opacity-40 hidden sm:block"
                               >
                                 <option value="customer">Customer</option>
                                 <option value="worker">Worker</option>
                                 <option value="admin">Admin</option>
                               </select>
-                              {isUpdating && <RefreshCw className="w-3 h-3 text-neutral-400 animate-spin flex-shrink-0" />}
+                              {isUpdating && <RefreshCw className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-neutral-400 animate-spin flex-shrink-0" />}
                             </div>
                           </td>
 
-                          {/* Joined */}
-                          <td className="px-5 py-4">
+                          {/* Joined — hidden on mobile */}
+                          <td className="hidden sm:table-cell px-5 py-4">
                             <p className="text-xs font-medium text-neutral-700">{fmtDate(user.created_at)}</p>
                           </td>
 
-                          {/* Orders */}
-                          <td className="px-5 py-4">
+                          {/* Orders — hidden on mobile */}
+                          <td className="hidden sm:table-cell px-5 py-4">
                             <span className="inline-flex items-center px-2.5 py-0.5 bg-neutral-100 text-neutral-600 rounded-full text-xs font-semibold tabular-nums">
                               {user.orders?.[0]?.count ?? 0}
                             </span>
                           </td>
 
                           {/* Actions */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center justify-end gap-1">
+                          <td className="px-3 sm:px-5 py-3 sm:py-4">
+                            <div className="flex items-center justify-end gap-0.5 sm:gap-1">
                               <button onClick={() => openEditModal(user)}
-                                className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors" title="Edit">
-                                <Pencil className="w-3.5 h-3.5" />
+                                className="p-1 sm:p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors" title="Edit">
+                                <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               </button>
                               <button onClick={() => handleStatusToggle(user.id, user.status)} disabled={isUpdating}
-                                className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+                                className={`p-1 sm:p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
                                   user.status === 'active'
                                     ? 'text-neutral-400 hover:text-red-500 hover:bg-red-50'
                                     : 'text-neutral-400 hover:text-emerald-600 hover:bg-emerald-50'
                                 }`}
-                                title={user.status === 'active' ? 'Deactivate' : 'Activate'}
-                              >
+                                title={user.status === 'active' ? 'Deactivate' : 'Activate'}>
                                 {user.status === 'active'
-                                  ? <XCircle className="w-3.5 h-3.5" />
-                                  : <CheckCircle className="w-3.5 h-3.5" />
-                                }
+                                  ? <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                  : <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                               </button>
                               <button onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
-                                className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors" title="Details">
-                                <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                                className="p-1 sm:p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors" title="Details">
+                                <ChevronRight className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
                               </button>
                               <button onClick={() => setDeleteConfirmId(user.id)}
-                                className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
-                                <Trash2 className="w-3.5 h-3.5" />
+                                className="p-1 sm:p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
+                                <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -582,21 +576,42 @@ const UserManagement = () => {
                               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                               transition={{ duration: 0.16 }}
                             >
-                              <td colSpan={bulkMode ? 6 : 5} className="bg-neutral-50/60 border-b border-neutral-100 px-5 py-4">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                              <td colSpan={bulkMode ? 6 : 5} className="bg-neutral-50/60 border-b border-neutral-100 px-3 sm:px-5 py-3 sm:py-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-xs">
                                   <div>
                                     <p className="text-neutral-400 font-medium mb-0.5">Full ID</p>
-                                    <p className="font-mono text-neutral-600 break-all text-[10px]">{user.id}</p>
+                                    <p className="font-mono text-neutral-600 break-all text-[9px] sm:text-[10px]">{user.id}</p>
                                   </div>
                                   <div>
                                     <p className="text-neutral-400 font-medium mb-0.5">Last Login</p>
-                                    <p className="text-neutral-700 font-medium">{user.last_login ? fmtDate(user.last_login) : 'Never'}</p>
+                                    <p className="text-neutral-700 font-medium text-[11px] sm:text-xs">
+                                      {user.last_login ? fmtDate(user.last_login) : 'Never'}
+                                    </p>
+                                  </div>
+                                  {/* Show Joined + Orders here on mobile since columns are hidden */}
+                                  <div className="sm:hidden">
+                                    <p className="text-neutral-400 font-medium mb-0.5">Joined</p>
+                                    <p className="text-neutral-700 font-medium text-[11px]">{fmtDate(user.created_at)}</p>
                                   </div>
                                   <div>
                                     <p className="text-neutral-400 font-medium mb-0.5">Account Status</p>
-                                    <p className={`font-semibold capitalize ${user.status === 'active' ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    <p className={`font-semibold capitalize text-[11px] sm:text-xs ${user.status === 'active' ? 'text-emerald-600' : 'text-red-500'}`}>
                                       {user.status}
                                     </p>
+                                  </div>
+                                  {/* Role change select shown in expanded row on mobile */}
+                                  <div className="sm:hidden">
+                                    <p className="text-neutral-400 font-medium mb-1">Change Role</p>
+                                    <select
+                                      value={user.role}
+                                      onChange={e => handleUpdateRole(user.id, e.target.value)}
+                                      disabled={updatingUserId === user.id}
+                                      className="text-xs text-neutral-700 bg-white border border-neutral-200 rounded-lg px-2 py-1 outline-none cursor-pointer disabled:opacity-40"
+                                    >
+                                      <option value="customer">Customer</option>
+                                      <option value="worker">Worker</option>
+                                      <option value="admin">Admin</option>
+                                    </select>
                                   </div>
                                 </div>
                               </td>
@@ -613,9 +628,9 @@ const UserManagement = () => {
 
           {/* Empty state */}
           {!loadingUsers && currentUsers.length === 0 && (
-            <div className="flex flex-col items-center gap-4 py-16">
-              <div className="w-12 h-12 bg-neutral-100 rounded-2xl flex items-center justify-center">
-                <Users className="w-6 h-6 text-neutral-400" />
+            <div className="flex flex-col items-center gap-3 sm:gap-4 py-12 sm:py-16">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-neutral-100 rounded-2xl flex items-center justify-center">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-400" />
               </div>
               <div className="text-center">
                 <p className="text-sm font-semibold text-neutral-700">No users found</p>
@@ -634,27 +649,26 @@ const UserManagement = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-4 border-t border-neutral-100 bg-neutral-50/50">
+            <div className="flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4 border-t border-neutral-100 bg-neutral-50/50">
               <p className="text-xs text-neutral-500">
                 {startIdx + 1}–{Math.min(startIdx + usersPerPage, filteredUsers.length)} of {filteredUsers.length}
               </p>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5">
                 <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}
-                  className="p-1.5 border border-neutral-200 rounded-lg bg-white text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 transition-colors">
-                  <ChevronLeft className="w-4 h-4" />
+                  className="p-1 sm:p-1.5 border border-neutral-200 rounded-lg bg-white text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 transition-colors">
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(pg => (
                   <button key={pg} onClick={() => setCurrentPage(pg)}
-                    className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs font-semibold transition-colors ${
                       currentPage === pg
                         ? 'bg-neutral-900 text-white'
                         : 'border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                    }`}
-                  >{pg}</button>
+                    }`}>{pg}</button>
                 ))}
                 <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}
-                  className="p-1.5 border border-neutral-200 rounded-lg bg-white text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 transition-colors">
-                  <ChevronRight className="w-4 h-4" />
+                  className="p-1 sm:p-1.5 border border-neutral-200 rounded-lg bg-white text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 transition-colors">
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
             </div>
@@ -662,31 +676,26 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* ── Delete confirmation dialog ─────────────────────────────────────────── */}
+      {/* ── Delete confirmation ────────────────────────────────────────────────── */}
       <AnimatePresence>
         {deleteConfirmId && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-            <motion.div
-              initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.92, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl"
-            >
-              <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-6 h-6 text-red-500" />
+            <motion.div {...modalSheet} className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
               </div>
-              <h3 className="text-base font-semibold text-neutral-900 text-center">Delete User?</h3>
-              <p className="text-sm text-neutral-500 text-center mt-1.5 mb-6">
+              <h3 className="text-sm sm:text-base font-semibold text-neutral-900 text-center">Delete User?</h3>
+              <p className="text-xs sm:text-sm text-neutral-500 text-center mt-1.5 mb-5 sm:mb-6">
                 This permanently removes the account and all associated data.
               </p>
-              <div className="flex gap-3">
+              <div className="flex gap-2.5 sm:gap-3">
                 <button onClick={() => setDeleteConfirmId(null)} disabled={submitting}
-                  className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
+                  className="flex-1 px-4 py-2 sm:py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
                   Cancel
                 </button>
                 <button onClick={() => handleDeleteUser(deleteConfirmId!)} disabled={submitting}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
                   {submitting ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Deleting…</> : 'Delete'}
                 </button>
               </div>
@@ -695,28 +704,28 @@ const UserManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Add user modal ─────────────────────────────────────────────────────── */}
+      {/* ── Add user modal — bottom sheet on mobile ────────────────────────────── */}
       <AnimatePresence>
         {showAddModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <motion.div
-              initial={{ scale: 0.93, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.93, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-              className="bg-white rounded-2xl w-full max-w-md shadow-2xl"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
-                <div>
-                  <h2 className="text-base font-semibold text-neutral-900">Add New User</h2>
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
+            <motion.div {...modalSheet} className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl max-h-[96vh] overflow-y-auto">
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-neutral-100 relative">
+                {/* Drag handle — mobile only */}
+                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-neutral-200 rounded-full sm:hidden" />
+                <div className="mt-3 sm:mt-0">
+                  <h2 className="text-sm sm:text-base font-semibold text-neutral-900">Add New User</h2>
                   <p className="text-xs text-neutral-400 mt-0.5">Create a new system account</p>
                 </div>
                 <button onClick={() => setShowAddModal(false)}
                   className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
-              <form onSubmit={handleAddUser} className="p-6 space-y-4">
+
+              <form onSubmit={handleAddUser} className="p-4 sm:p-6 space-y-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5 uppercase tracking-wider">
                     Email <span className="text-red-400">*</span>
@@ -742,12 +751,12 @@ const UserManagement = () => {
                       const { label, Icon } = ROLE_CFG[role];
                       return (
                         <button key={role} type="button" onClick={() => setAddForm(f => ({ ...f, role }))}
-                          className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
+                          className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2.5 sm:py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
                             addForm.role === role
                               ? 'border-neutral-900 bg-neutral-900 text-white'
                               : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
                           }`}>
-                          <Icon className="w-4 h-4" />
+                          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           {label}
                         </button>
                       );
@@ -755,13 +764,13 @@ const UserManagement = () => {
                   </div>
                   <p className="text-[11px] text-neutral-400 mt-1.5">{ROLE_DESC[addForm.role]}</p>
                 </div>
-                <div className="flex gap-3 pt-3 border-t border-neutral-100">
+                <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2.5 sm:pt-3 border-t border-neutral-100">
                   <button type="button" onClick={() => setShowAddModal(false)} disabled={submitting}
-                    className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
+                    className="flex-1 px-4 py-2 sm:py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
                     Cancel
                   </button>
                   <button type="submit" disabled={submitting}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-60">
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-60">
                     {submitting ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Creating…</> : 'Create User'}
                   </button>
                 </div>
@@ -771,36 +780,37 @@ const UserManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Edit user modal ────────────────────────────────────────────────────── */}
+      {/* ── Edit user modal — bottom sheet on mobile ───────────────────────────── */}
       <AnimatePresence>
         {showEditModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <motion.div
-              initial={{ scale: 0.93, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.93, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-              className="bg-white rounded-2xl w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl"
-            >
-              <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-sm border-b border-neutral-100 rounded-t-2xl">
-                <div className="flex items-center gap-3">
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
+            <motion.div {...modalSheet} className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[96vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl">
+
+              {/* Sticky header */}
+              <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 bg-white/90 backdrop-blur-sm border-b border-neutral-100 rounded-t-2xl relative">
+                {/* Drag handle — mobile only */}
+                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-neutral-200 rounded-full sm:hidden" />
+                <div className="flex items-center gap-2.5 sm:gap-3 mt-3 sm:mt-0">
                   {editingUser && (
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${avatarCls(editingUser.email)}`}>
+                    <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 ${avatarCls(editingUser.email)}`}>
                       {getInitial(editingUser.email)}
                     </div>
                   )}
                   <div>
-                    <h2 className="text-base font-semibold text-neutral-900">Edit User</h2>
-                    <p className="text-xs text-neutral-400 truncate max-w-[180px]">{editingUser?.email}</p>
+                    <h2 className="text-sm sm:text-base font-semibold text-neutral-900">Edit User</h2>
+                    <p className="text-[11px] sm:text-xs text-neutral-400 truncate max-w-[160px] sm:max-w-[180px]">
+                      {editingUser?.email}
+                    </p>
                   </div>
                 </div>
                 <button onClick={() => setShowEditModal(false)}
                   className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleUpdateUser} className="p-6 space-y-5">
+              <form onSubmit={handleUpdateUser} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                 <div>
                   <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5 uppercase tracking-wider">Email</label>
                   <input type="email" value={editForm.email}
@@ -808,7 +818,6 @@ const UserManagement = () => {
                     className={inputCls()} required />
                 </div>
 
-                {/* Visual role picker — the key UI for role changes */}
                 <div>
                   <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5 uppercase tracking-wider">
                     Role <span className="text-red-400">*</span>
@@ -816,15 +825,14 @@ const UserManagement = () => {
                   <div className="grid grid-cols-3 gap-2">
                     {(['customer', 'worker', 'admin'] as Role[]).map(role => {
                       const { label, Icon } = ROLE_CFG[role];
-                      const selected = editForm.role === role;
                       return (
                         <button key={role} type="button" onClick={() => setEditForm(f => ({ ...f, role }))}
-                          className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
-                            selected
+                          className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2.5 sm:py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
+                            editForm.role === role
                               ? 'border-neutral-900 bg-neutral-900 text-white'
                               : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
                           }`}>
-                          <Icon className="w-4 h-4" />
+                          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           {label}
                         </button>
                       );
@@ -834,8 +842,11 @@ const UserManagement = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5 uppercase tracking-wider">Account Status</label>
-                  <select value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value as Status }))}
+                  <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5 uppercase tracking-wider">
+                    Account Status
+                  </label>
+                  <select value={editForm.status}
+                    onChange={e => setEditForm(f => ({ ...f, status: e.target.value as Status }))}
                     className={inputCls()}>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -845,11 +856,11 @@ const UserManagement = () => {
 
                 {/* Permissions accordion */}
                 {editForm.role !== 'customer' && (
-                  <div className="border-t border-neutral-100 pt-4">
+                  <div className="border-t border-neutral-100 pt-3.5 sm:pt-4">
                     <button type="button" onClick={() => setShowPerms(!showPerms)}
-                      className="flex items-center justify-between w-full text-xs font-semibold text-neutral-500 uppercase tracking-wider hover:text-neutral-700 transition-colors">
+                      className="flex items-center justify-between w-full text-[11px] sm:text-xs font-semibold text-neutral-500 uppercase tracking-wider hover:text-neutral-700 transition-colors">
                       <span>Permissions overview</span>
-                      <ChevronRight className={`w-4 h-4 transition-transform ${showPerms ? 'rotate-90' : ''}`} />
+                      <ChevronRight className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${showPerms ? 'rotate-90' : ''}`} />
                     </button>
                     <AnimatePresence>
                       {showPerms && (
@@ -871,7 +882,7 @@ const UserManagement = () => {
                             'Order processing and stock updates',
                             'Basic reporting access',
                           ]).map(p => (
-                            <li key={p} className="flex items-center gap-2 text-xs text-neutral-500">
+                            <li key={p} className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-neutral-500">
                               <CheckCircle className="w-3 h-3 text-emerald-500 flex-shrink-0" />
                               {p}
                             </li>
@@ -882,13 +893,13 @@ const UserManagement = () => {
                   </div>
                 )}
 
-                <div className="flex gap-3 pt-3 border-t border-neutral-100">
+                <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2.5 sm:pt-3 border-t border-neutral-100">
                   <button type="button" onClick={() => setShowEditModal(false)} disabled={submitting}
-                    className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
+                    className="flex-1 px-4 py-2 sm:py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
                     Cancel
                   </button>
                   <button type="submit" disabled={submitting}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-60">
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-60">
                     {submitting ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving…</> : 'Save Changes'}
                   </button>
                 </div>
@@ -898,7 +909,7 @@ const UserManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Spring toast ──────────────────────────────────────────────────────── */}
+      {/* ── Toast — full-width on mobile ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -906,15 +917,16 @@ const UserManagement = () => {
             animate={{ opacity: 1, y: 0,  scale: 1    }}
             exit={{    opacity: 0, y: 16, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className={`fixed bottom-6 right-6 z-[70] flex items-center gap-3 px-4 py-3 rounded-xl bg-white shadow-lg shadow-neutral-900/10 border ${
+            className={`fixed bottom-4 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-[70]
+              flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl
+              bg-white shadow-lg shadow-neutral-900/10 border ${
               toast.type === 'success' ? 'border-emerald-200' : 'border-red-200'
             }`}
           >
             {toast.type === 'success'
               ? <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-              : <AlertCircle className="w-4 h-4 text-red-500   flex-shrink-0" />
-            }
-            <span className={`text-sm font-medium max-w-xs ${toast.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
+              : <AlertCircle className="w-4 h-4 text-red-500   flex-shrink-0" />}
+            <span className={`text-sm font-medium flex-1 ${toast.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
               {toast.message}
             </span>
             <button onClick={() => setToast(null)} className="ml-1 text-neutral-400 hover:text-neutral-600 transition-colors">
