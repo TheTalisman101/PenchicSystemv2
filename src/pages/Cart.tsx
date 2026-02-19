@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowRight, ChevronLeft, Package } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ArrowRight, ChevronLeft, Package, Tag, Sparkles } from 'lucide-react';
 
-// ─── Reusable quantity stepper ────────────────────────────────────────────────
+// ─── Quantity stepper ─────────────────────────────────────────────────────────
 interface QtyStepperProps {
   value: number;
   max: number;
@@ -14,8 +14,6 @@ interface QtyStepperProps {
 
 const QtyStepper: React.FC<QtyStepperProps> = ({ value, max, onIncrement, onDecrement, onSet }) => {
   const [draft, setDraft] = useState(String(value));
-
-  // Keep draft in sync when external value changes (e.g. store update)
   useEffect(() => { setDraft(String(value)); }, [value]);
 
   const commit = () => {
@@ -29,11 +27,10 @@ const QtyStepper: React.FC<QtyStepperProps> = ({ value, max, onIncrement, onDecr
         onClick={onDecrement}
         disabled={value <= 1}
         aria-label="Decrease quantity"
-        className="w-9 h-9 flex items-center justify-center text-neutral-400 hover:text-[#1a6b47] hover:bg-[#f0faf5] disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 transition-colors"
+        className="w-9 h-9 flex items-center justify-center text-neutral-400 hover:text-[#1a6b47] hover:bg-[#f0faf5] disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
       >
         <Minus className="w-3.5 h-3.5" />
       </button>
-
       <input
         type="number"
         min={1}
@@ -44,12 +41,11 @@ const QtyStepper: React.FC<QtyStepperProps> = ({ value, max, onIncrement, onDecr
         onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
         className="w-11 h-9 text-center text-[13px] font-bold text-neutral-900 bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
-
       <button
         onClick={onIncrement}
         disabled={value >= max}
         aria-label="Increase quantity"
-        className="w-9 h-9 flex items-center justify-center text-neutral-400 hover:text-[#1a6b47] hover:bg-[#f0faf5] disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 transition-colors"
+        className="w-9 h-9 flex items-center justify-center text-neutral-400 hover:text-[#1a6b47] hover:bg-[#f0faf5] disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
       >
         <Plus className="w-3.5 h-3.5" />
       </button>
@@ -57,7 +53,17 @@ const QtyStepper: React.FC<QtyStepperProps> = ({ value, max, onIncrement, onDecr
   );
 };
 
-// ─── Cart component ───────────────────────────────────────────────────────────
+// ─── Discount helpers ─────────────────────────────────────────────────────────
+const getDiscountedPrice = (product: any): number => {
+  if (!product.discount?.percentage) return product.price;
+  return Math.round(product.price - (product.price * product.discount.percentage) / 100);
+};
+
+const getSavingsPerUnit = (product: any): number => {
+  return product.price - getDiscountedPrice(product);
+};
+
+// ─── Cart ─────────────────────────────────────────────────────────────────────
 const Cart = () => {
   const { cartItems, clearCart, updateCartQuantity, setCartQuantity, removeFromCart } = useStore(
     (state) => ({
@@ -79,17 +85,23 @@ const Cart = () => {
 
   if (!canUseCart) return null;
 
+  // ── Totals ────────────────────────────────────────────────────────────────
+  const subtotalOriginal = cartItems.reduce(
+    (sum, item) => sum + item.product.price * item.quantity, 0
+  );
+  const totalDiscounted = cartItems.reduce(
+    (sum, item) => sum + getDiscountedPrice(item.product) * item.quantity, 0
+  );
+  const totalSavings = subtotalOriginal - totalDiscounted;
+  const hasAnyDiscount = totalSavings > 0;
+  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
   const handleCheckout = () => {
     if (cartItems.length === 0) { alert('Your cart is empty.'); return; }
     navigate('/checkout');
   };
 
-  const totalAmount = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity, 0
-  );
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  // ── Empty state ──
+  // ── Empty state ───────────────────────────────────────────────────────────
   if (!cartItems || cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-[#f7faf8] flex items-center justify-center p-4">
@@ -119,8 +131,6 @@ const Cart = () => {
       {/* ── Sticky header ── */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-[60px] flex items-center justify-between gap-4">
-
-          {/* Back */}
           <button
             onClick={() => navigate('/shop')}
             className="group flex items-center gap-2 text-sm text-neutral-500 hover:text-[#1a6b47] transition-colors font-medium flex-shrink-0"
@@ -131,7 +141,6 @@ const Cart = () => {
             <span className="hidden sm:block">Continue shopping</span>
           </button>
 
-          {/* Title */}
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#1a6b47] flex items-center justify-center shadow-sm">
               <ShoppingBag className="w-4 h-4 text-white" />
@@ -142,7 +151,6 @@ const Cart = () => {
             </span>
           </div>
 
-          {/* Clear */}
           <button
             onClick={clearCart}
             className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-red-500 transition-colors font-semibold flex-shrink-0"
@@ -153,6 +161,18 @@ const Cart = () => {
         </div>
       </header>
 
+      {/* ── Savings banner (shown when any item has a discount) ── */}
+      {hasAnyDiscount && (
+        <div className="bg-gradient-to-r from-red-500 to-rose-500 text-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-3">
+            <Sparkles className="w-4 h-4 flex-shrink-0" />
+            <p className="text-sm font-bold">
+              You're saving <span className="underline underline-offset-2">KES {totalSavings.toLocaleString('en-KE')}</span> on this order with active discounts!
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Page body ── */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
@@ -161,13 +181,38 @@ const Cart = () => {
           <div className="space-y-3">
             {cartItems.map((item) => {
               const key = `${item.product.id}-${item.variant?.id ?? 'default'}`;
+              const hasDiscount = !!item.product.discount?.percentage;
+              const unitPrice = getDiscountedPrice(item.product);
+              const originalUnitPrice = item.product.price;
+              const savingsPerUnit = getSavingsPerUnit(item.product);
+              const lineTotal = unitPrice * item.quantity;
+              const lineSavings = savingsPerUnit * item.quantity;
+
               return (
                 <article
                   key={key}
-                  className="group bg-white rounded-2xl border border-neutral-200 hover:border-[#b8dfd0] hover:shadow-lg hover:shadow-green-900/5 transition-all duration-200"
+                  className={`group bg-white rounded-2xl border transition-all duration-200 overflow-hidden ${
+                    hasDiscount
+                      ? 'border-red-200 hover:border-red-300 hover:shadow-lg hover:shadow-red-900/5'
+                      : 'border-neutral-200 hover:border-[#b8dfd0] hover:shadow-lg hover:shadow-green-900/5'
+                  }`}
                 >
-                  <div className="flex gap-4 p-4">
+                  {/* Discount ribbon for this item */}
+                  {hasDiscount && (
+                    <div className="bg-gradient-to-r from-red-50 to-rose-50 border-b border-red-100 px-4 py-2 flex items-center gap-2">
+                      <Tag className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                      <p className="text-red-600 text-xs font-bold">
+                        {item.product.discount.percentage}% discount applied
+                        {item.quantity > 1 && (
+                          <span className="text-red-400 font-semibold ml-1">
+                            — saving KES {lineSavings.toLocaleString('en-KE')} on this line
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
 
+                  <div className="flex gap-4 p-4">
                     {/* Thumbnail */}
                     <div className="relative w-[100px] h-[100px] flex-shrink-0 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200">
                       <img
@@ -175,6 +220,13 @@ const Cart = () => {
                         alt={item.product.name}
                         className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out"
                       />
+                      {hasDiscount && (
+                        <div className="absolute top-1.5 left-1.5">
+                          <span className="bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shadow-sm">
+                            -{item.product.discount.percentage}%
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Content */}
@@ -184,9 +236,24 @@ const Cart = () => {
                           <h3 className="font-bold text-neutral-900 text-[15px] leading-snug truncate">
                             {item.product.name}
                           </h3>
-                          <p className="text-neutral-400 text-xs mt-0.5">
-                            KES {item.product.price.toLocaleString('en-KE')} / unit
-                          </p>
+
+                          {/* Unit price */}
+                          {hasDiscount ? (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-neutral-900 font-bold text-sm">
+                                KES {unitPrice.toLocaleString('en-KE')}
+                              </span>
+                              <span className="text-neutral-400 text-xs line-through">
+                                KES {originalUnitPrice.toLocaleString('en-KE')}
+                              </span>
+                              <span className="text-red-500 text-[10px] font-bold">/ unit</span>
+                            </div>
+                          ) : (
+                            <p className="text-neutral-400 text-xs mt-0.5">
+                              KES {originalUnitPrice.toLocaleString('en-KE')} / unit
+                            </p>
+                          )}
+
                           {item.variant && (
                             <span className="inline-block mt-1.5 text-[10px] font-bold uppercase tracking-wider bg-[#eaf5f0] text-[#1a6b47] border border-[#c5e8d9] px-2 py-0.5 rounded-md">
                               Size: {item.variant.size}
@@ -194,7 +261,7 @@ const Cart = () => {
                           )}
                         </div>
 
-                        {/* Delete (desktop) */}
+                        {/* Delete */}
                         <button
                           onClick={() => removeFromCart(item.product.id, item.variant?.id)}
                           title="Remove item"
@@ -204,7 +271,7 @@ const Cart = () => {
                         </button>
                       </div>
 
-                      {/* Bottom row: stepper + subtotal */}
+                      {/* Bottom: stepper + subtotal */}
                       <div className="mt-auto pt-3 flex items-center justify-between gap-3 flex-wrap">
                         <QtyStepper
                           value={item.quantity}
@@ -217,8 +284,13 @@ const Cart = () => {
                         <div className="text-right">
                           <p className="text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">Subtotal</p>
                           <p className="text-[17px] font-extrabold text-neutral-900 leading-tight">
-                            KES {(item.product.price * item.quantity).toLocaleString('en-KE')}
+                            KES {lineTotal.toLocaleString('en-KE')}
                           </p>
+                          {hasDiscount && item.quantity > 1 && (
+                            <p className="text-red-500 text-[10px] font-bold mt-0.5">
+                              Save KES {lineSavings.toLocaleString('en-KE')}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -232,7 +304,7 @@ const Cart = () => {
           <aside>
             <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden sticky top-[76px]">
 
-              {/* Summary header */}
+              {/* Header */}
               <div className="px-5 py-4 bg-[#f7faf8] border-b border-neutral-100 flex items-center gap-2">
                 <Package className="w-4 h-4 text-[#2d9e6b]" />
                 <p className="text-[11px] font-extrabold uppercase tracking-widest text-neutral-500">
@@ -241,40 +313,84 @@ const Cart = () => {
               </div>
 
               {/* Line items */}
-              <div className="p-5 space-y-3 max-h-[280px] overflow-y-auto">
-                {cartItems.map((item) => (
-                  <div
-                    key={`${item.product.id}-${item.variant?.id ?? 'default'}`}
-                    className="flex items-start justify-between gap-3 text-sm"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-neutral-700 font-medium truncate leading-tight">{item.product.name}</p>
-                      {item.variant && (
-                        <p className="text-neutral-400 text-[11px]">{item.variant.size}</p>
-                      )}
+              <div className="p-5 space-y-3 max-h-[240px] overflow-y-auto">
+                {cartItems.map((item) => {
+                  const hasDiscount = !!item.product.discount?.percentage;
+                  const unitPrice = getDiscountedPrice(item.product);
+                  const lineTotal = unitPrice * item.quantity;
+
+                  return (
+                    <div
+                      key={`${item.product.id}-${item.variant?.id ?? 'default'}`}
+                      className="flex items-start justify-between gap-3 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-neutral-700 font-medium truncate leading-tight">{item.product.name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {item.variant && (
+                            <span className="text-neutral-400 text-[11px]">{item.variant.size} ·</span>
+                          )}
+                          <span className="text-neutral-400 text-[11px]">×{item.quantity}</span>
+                          {hasDiscount && (
+                            <span className="text-red-500 text-[10px] font-bold bg-red-50 px-1.5 py-0.5 rounded">
+                              -{item.product.discount.percentage}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <p className="text-neutral-900 font-bold">
+                          KES {lineTotal.toLocaleString('en-KE')}
+                        </p>
+                        {hasDiscount && (
+                          <p className="text-neutral-400 text-[11px] line-through">
+                            KES {(item.product.price * item.quantity).toLocaleString('en-KE')}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-shrink-0 text-right">
-                      <p className="text-neutral-900 font-bold">
-                        KES {(item.product.price * item.quantity).toLocaleString('en-KE')}
-                      </p>
-                      <p className="text-neutral-400 text-[11px]">×{item.quantity}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              {/* Totals + CTA */}
-              <div className="px-5 pb-5 pt-4 border-t border-neutral-100 space-y-4">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-sm text-neutral-500 font-semibold">Total</span>
+              {/* Totals */}
+              <div className="px-5 pb-5 pt-4 border-t border-neutral-100 space-y-3">
+                {/* Savings row */}
+                {hasAnyDiscount && (
+                  <div className="flex items-center justify-between py-2 px-3 bg-red-50 rounded-xl border border-red-100">
+                    <div className="flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-red-500" />
+                      <span className="text-red-600 text-xs font-bold">Discounts applied</span>
+                    </div>
+                    <span className="text-red-600 font-extrabold text-sm">
+                      -KES {totalSavings.toLocaleString('en-KE')}
+                    </span>
+                  </div>
+                )}
+
+                {/* Original subtotal (only if discounts exist) */}
+                {hasAnyDiscount && (
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs text-neutral-400 font-semibold">Original price</span>
+                    <span className="text-neutral-400 font-semibold text-sm line-through">
+                      KES {subtotalOriginal.toLocaleString('en-KE')}
+                    </span>
+                  </div>
+                )}
+
+                {/* Final total */}
+                <div className="flex items-baseline justify-between pt-1 border-t border-neutral-100">
+                  <span className="text-sm text-neutral-700 font-bold">
+                    {hasAnyDiscount ? 'Total after discounts' : 'Total'}
+                  </span>
                   <span className="text-[1.6rem] font-extrabold text-neutral-900 tracking-tight leading-none">
-                    KES {totalAmount.toLocaleString('en-KE')}
+                    KES {totalDiscounted.toLocaleString('en-KE')}
                   </span>
                 </div>
 
                 <button
                   onClick={handleCheckout}
-                  className="w-full group flex items-center justify-center gap-2.5 bg-[#1a6b47] text-white py-4 px-6 rounded-xl text-[14px] font-bold tracking-wide hover:bg-[#155a3b] active:scale-[0.98] transition-all duration-150 shadow-lg shadow-green-900/20 hover:shadow-xl hover:shadow-green-900/25"
+                  className="w-full group flex items-center justify-center gap-2.5 bg-[#1a6b47] text-white py-4 px-6 rounded-xl text-[14px] font-bold tracking-wide hover:bg-[#155a3b] active:scale-[0.98] transition-all duration-150 shadow-lg shadow-green-900/20 hover:shadow-xl mt-1"
                 >
                   Proceed to Checkout
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
