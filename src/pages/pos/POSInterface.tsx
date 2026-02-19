@@ -53,17 +53,23 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
 
       {/* Stepper row */}
       <div className="flex items-center justify-between gap-2">
+        {/*
+          No overflow-hidden on the wrapper — instead border-radius is applied
+          directly to the first/last button so the input is never clipped.
+          Input width is driven by ch units so it grows with digit count.
+        */}
         <div className="inline-flex items-center h-8 border border-neutral-200 rounded-lg
-          overflow-hidden bg-white flex-shrink-0
+          bg-white flex-shrink-0
           focus-within:border-green-400 focus-within:ring-1 focus-within:ring-green-400/20
           transition-all">
 
           <button
             onClick={() => onUpdateQty(item.product.id, item.variant?.id, -1)}
             disabled={item.quantity <= 1}
-            className="w-8 h-8 flex items-center justify-center border-r border-neutral-200
-              text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800
-              active:bg-neutral-200 transition-colors touch-manipulation
+            className="w-8 h-8 flex items-center justify-center rounded-l-[7px]
+              border-r border-neutral-200 text-neutral-500
+              hover:bg-neutral-100 hover:text-neutral-800 active:bg-neutral-200
+              transition-colors touch-manipulation
               disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
           >
             <Minus className="w-3 h-3" />
@@ -86,8 +92,10 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
               }
             }}
             onWheel={e => (e.target as HTMLInputElement).blur()}
-            className="w-10 h-8 text-center text-sm font-bold text-neutral-900
-              bg-transparent border-none outline-none tabular-nums leading-none
+            style={{ width: `${Math.max(2, String(draft).length)}ch` }}
+            className="min-w-[2rem] h-8 px-1 text-center text-sm font-bold
+              text-neutral-900 bg-transparent border-none outline-none
+              tabular-nums leading-none
               [appearance:textfield]
               [&::-webkit-outer-spin-button]:appearance-none
               [&::-webkit-inner-spin-button]:appearance-none"
@@ -96,9 +104,10 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
           <button
             onClick={() => onUpdateQty(item.product.id, item.variant?.id, 1)}
             disabled={item.quantity >= item.product.stock}
-            className="w-8 h-8 flex items-center justify-center border-l border-neutral-200
-              text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800
-              active:bg-neutral-200 transition-colors touch-manipulation
+            className="w-8 h-8 flex items-center justify-center rounded-r-[7px]
+              border-l border-neutral-200 text-neutral-500
+              hover:bg-neutral-100 hover:text-neutral-800 active:bg-neutral-200
+              transition-colors touch-manipulation
               disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
           >
             <Plus className="w-3 h-3" />
@@ -316,7 +325,7 @@ const POSInterface = () => {
       alert('Cannot exceed available stock'); return;
     }
     addToCart({ product, quantity: 1 });
-    setAddBump(n => n + 1); // bump FAB only — do NOT open drawer
+    setAddBump(n => n + 1);
   }, [cart, addToCart]);
 
   const handleRemoveFromCart  = useCallback((pid: string, vid?: string) =>
@@ -654,7 +663,7 @@ const POSInterface = () => {
       {/*
         ── Floating cart button — mobile only ──────────────────────────────────
         Always visible when cart has items.
-        Product tap bumps FAB animation only — does NOT open the drawer.
+        Product tap bumps FAB only — does NOT open the drawer.
       */}
       <AnimatePresence>
         {cart.length > 0 && (
