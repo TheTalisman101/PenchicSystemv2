@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Product } from '../types';
-import { ShoppingCart, Store, AlertCircle, ChevronLeft, Tag, Sparkles } from 'lucide-react';
+import { ShoppingCart, Store, ChevronLeft, Tag, Sparkles, Plus, Minus } from 'lucide-react';
 import { useStore } from '../store';
 import { useDiscounts } from '../hooks/useDiscounts';
 import { useInventoryVisibility } from '../hooks/useInventoryVisibility';
@@ -102,10 +102,10 @@ const ProductDetails = () => {
     if (canViewStock) {
       if (stock <= 0) return { text: `Out of Stock (${stock})`, color: 'text-red-500', dot: 'bg-red-500' };
       if (stock <= 5) return { text: `Low Stock — only ${stock} left`, color: 'text-amber-600', dot: 'bg-amber-500' };
-      return { text: `In Stock (${stock} available)`, color: 'text-emerald-600', dot: 'bg-emerald-500' };
+      return { text: `In Stock (${stock} available)`, color: 'text-[#1a6b47]', dot: 'bg-[#2d9e6b]' };
     } else {
       if (stock <= 0) return { text: 'Out of Stock', color: 'text-red-500', dot: 'bg-red-500' };
-      return { text: 'In Stock', color: 'text-emerald-600', dot: 'bg-emerald-500' };
+      return { text: 'In Stock', color: 'text-[#1a6b47]', dot: 'bg-[#2d9e6b]' };
     }
   };
 
@@ -113,7 +113,7 @@ const ProductDetails = () => {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-neutral-200 border-t-neutral-900 animate-spin"></div>
+          <div className="w-10 h-10 rounded-full border-2 border-neutral-200 border-t-[#2d9e6b] animate-spin"></div>
           <p className="text-sm text-neutral-400">Loading product...</p>
         </div>
       </div>
@@ -138,7 +138,7 @@ const ProductDetails = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-0">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors group"
+          className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-[#1a6b47] transition-colors group"
         >
           <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
           Back
@@ -150,17 +150,23 @@ const ProductDetails = () => {
 
           {/* Product Image */}
           <div className="relative">
-            <div className="aspect-square rounded-3xl overflow-hidden bg-neutral-100 shadow-sm">
+            <div className="aspect-square rounded-2xl overflow-hidden bg-neutral-100 shadow-sm border border-neutral-200">
               <img
                 src={product.image_url}
                 alt={product.name}
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-700 ease-out"
               />
             </div>
-            {/* Discount badge overlay on image */}
+            {/* Category badge */}
+            <div className="absolute top-4 right-4">
+              <span className="inline-flex items-center bg-[#1a6b47] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md uppercase tracking-wide">
+                {product.category}
+              </span>
+            </div>
+            {/* Discount badge */}
             {hasDiscount && displayProduct.discount.type !== 'buy_x_get_y' && (
               <div className="absolute top-4 left-4">
-                <span className="inline-flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                <span className="inline-flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md">
                   <Tag className="w-3 h-3" />
                   {displayProduct.discount.value}% OFF
                 </span>
@@ -169,17 +175,14 @@ const ProductDetails = () => {
           </div>
 
           {/* Product Info */}
-          <div className="flex flex-col justify-center space-y-7">
+          <div className="flex flex-col justify-center space-y-6">
 
-            {/* Category + Title */}
+            {/* Title + description */}
             <div>
-              <span className="inline-block text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-3">
-                {product.category}
-              </span>
               <h1 className="text-4xl font-bold text-neutral-900 leading-tight tracking-tight">
                 {product.name}
               </h1>
-              <p className="mt-4 text-neutral-500 leading-relaxed text-sm">
+              <p className="mt-3 text-neutral-500 leading-relaxed text-sm">
                 {product.description}
               </p>
             </div>
@@ -192,24 +195,24 @@ const ProductDetails = () => {
               {hasDiscount ? (
                 displayProduct.discount.type === 'buy_x_get_y' ? (
                   <div>
-                    <p className="text-3xl font-bold text-neutral-900 mb-4">
+                    <p className="text-4xl font-bold text-neutral-900 mb-4">
                       KES {displayProduct.discount.original_price.toLocaleString()}
                     </p>
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                    <div className="bg-[#eaf5f0] border border-[#a8dcc5] rounded-xl p-5 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#2d9e6b] flex items-center justify-center flex-shrink-0">
                         <Sparkles className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <p className="font-bold text-emerald-800">
+                        <p className="font-bold text-[#1a6b47]">
                           Buy {displayProduct.discount.buy_quantity} Get {displayProduct.discount.get_quantity} Free
                         </p>
-                        <p className="text-emerald-600 text-sm">Limited promotional offer</p>
+                        <p className="text-[#2d9e6b] text-sm">Limited promotional offer</p>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div className="flex items-baseline gap-3 mb-1">
+                    <div className="flex items-baseline gap-3 mb-2">
                       <span className="text-4xl font-bold text-neutral-900">
                         KES {displayProduct.discount.discounted_price.toLocaleString()}
                       </span>
@@ -217,7 +220,7 @@ const ProductDetails = () => {
                         KES {displayProduct.discount.original_price.toLocaleString()}
                       </span>
                     </div>
-                    <div className="mt-3 inline-flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-sm font-semibold">
+                    <div className="mt-2 inline-flex items-center gap-2 bg-[#eaf5f0] border border-[#a8dcc5] text-[#1a6b47] px-4 py-2 rounded-xl text-sm font-semibold">
                       <Tag className="w-3.5 h-3.5" />
                       You save KES {displayProduct.discount.savings.toLocaleString()}
                     </div>
@@ -232,7 +235,7 @@ const ProductDetails = () => {
               {/* Stock indicator */}
               <div className="flex items-center gap-2 mt-4">
                 <span className={`w-2 h-2 rounded-full ${stockDisplay.dot} flex-shrink-0`}></span>
-                <span className={`text-sm font-medium ${stockDisplay.color}`}>
+                <span className={`text-sm font-semibold ${stockDisplay.color}`}>
                   {stockDisplay.text}
                 </span>
               </div>
@@ -250,10 +253,10 @@ const ProductDetails = () => {
                       disabled={variant.stock <= 0}
                       className={`px-5 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all duration-150 ${
                         selectedVariant === variant.id
-                          ? 'bg-neutral-900 text-white border-neutral-900'
+                          ? 'bg-[#1a6b47] text-white border-[#1a6b47]'
                           : variant.stock <= 0
                           ? 'bg-neutral-50 text-neutral-300 border-neutral-200 cursor-not-allowed'
-                          : 'bg-white text-neutral-700 border-neutral-200 hover:border-neutral-400'
+                          : 'bg-white text-neutral-700 border-neutral-200 hover:border-[#2d9e6b] hover:text-[#1a6b47]'
                       }`}
                     >
                       {variant.size}
@@ -271,7 +274,8 @@ const ProductDetails = () => {
                   <div className="flex items-center bg-white border border-neutral-200 rounded-xl overflow-hidden">
                     <button
                       onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                      className="w-10 h-10 flex items-center justify-center hover:bg-neutral-50 text-neutral-600 transition-colors"
+                      disabled={quantity <= 1}
+                      className="w-10 h-10 flex items-center justify-center hover:bg-neutral-50 text-neutral-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
@@ -285,7 +289,8 @@ const ProductDetails = () => {
                     />
                     <button
                       onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
-                      className="w-10 h-10 flex items-center justify-center hover:bg-neutral-50 text-neutral-600 transition-colors"
+                      disabled={quantity >= product.stock}
+                      className="w-10 h-10 flex items-center justify-center hover:bg-neutral-50 text-neutral-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -295,9 +300,9 @@ const ProductDetails = () => {
                 <button
                   onClick={handleAddToCart}
                   disabled={product.stock <= 0}
-                  className={`w-full flex items-center justify-center gap-2.5 py-4 px-8 rounded-2xl text-sm font-bold transition-all duration-150 ${
+                  className={`w-full flex items-center justify-center gap-2.5 py-4 px-8 rounded-xl text-sm font-bold transition-all duration-150 ${
                     product.stock > 0
-                      ? 'bg-neutral-900 text-white hover:bg-neutral-700 active:scale-[0.98] shadow-lg shadow-neutral-900/10'
+                      ? 'bg-[#1a6b47] text-white hover:bg-[#155a3b] active:scale-[0.98] shadow-md'
                       : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'
                   }`}
                 >
@@ -308,21 +313,21 @@ const ProductDetails = () => {
             ) : (
               <div>
                 {!user ? (
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6 text-center">
-                    <p className="text-neutral-600 text-sm mb-4">Sign in to purchase this item</p>
+                  <div className="bg-[#eaf5f0] border border-[#a8dcc5] rounded-xl p-6 text-center">
+                    <p className="text-[#1a6b47] text-sm font-medium mb-4">Sign in to purchase this item</p>
                     <button
                       onClick={() => navigate('/login')}
-                      className="bg-neutral-900 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-neutral-700 transition-all duration-150"
+                      className="bg-[#1a6b47] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#155a3b] transition-all duration-150"
                     >
                       Login to Purchase
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6 text-center">
-                    <p className="text-neutral-600 text-sm mb-4">Visit us in-store to purchase this item</p>
+                  <div className="bg-[#eaf5f0] border border-[#a8dcc5] rounded-xl p-6 text-center">
+                    <p className="text-[#1a6b47] text-sm font-medium mb-4">Visit us in-store to purchase this item</p>
                     <button
                       onClick={openGoogleMaps}
-                      className="bg-neutral-900 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-neutral-700 transition-all duration-150 flex items-center justify-center gap-2 mx-auto"
+                      className="bg-[#1a6b47] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#155a3b] transition-all duration-150 flex items-center justify-center gap-2 mx-auto"
                     >
                       <Store className="w-4 h-4" />
                       Get Directions
