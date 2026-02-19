@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Product } from '../types';
 import {
   ShoppingCart, Plus, Minus, Store, Search, SlidersHorizontal,
-  X, ChevronRight, Zap, TrendingUp, Tag
+  X, Zap, TrendingUp, Tag
 } from 'lucide-react';
 import { useStore } from '../store';
 import RecentlyViewed from '../components/RecentlyViewed';
@@ -114,7 +114,6 @@ export default function Shop() {
       return 0;
     });
 
-  const featuredProducts = products.slice(0, 4);
   const hasActiveFilters = selectedCategory !== 'all' || stockFilter !== 'all' || sortBy !== 'default';
 
   const resetFilters = () => {
@@ -263,35 +262,6 @@ export default function Shop() {
         <div>
           <RecentlyViewed />
         </div>
-
-        {/* ══ FEATURED (only on default view) ═══════════════════════════════ */}
-        {!searchQuery && selectedCategory === 'all' && (
-          <section>
-            <div className="flex items-end justify-between mb-6">
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-6 h-0.5 bg-[#2d9e6b]" />
-                  <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#2d9e6b]">Just In</span>
-                </div>
-                <h2 className="text-[2rem] font-extrabold text-neutral-900 tracking-tight leading-tight">
-                  Featured Products
-                </h2>
-              </div>
-              <button
-                onClick={() => setSelectedCategory('all')}
-                className="flex items-center gap-1.5 text-sm font-bold text-[#1a6b47] border-2 border-[#a8dcc5] px-4 py-2 rounded-xl hover:bg-[#eaf5f0] transition-all"
-              >
-                View all <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {featuredProducts.map(product => (
-                <FeaturedCard key={product.id} product={product} formatPrice={formatPrice} />
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* ══ CATEGORY PILLS ═════════════════════════════════════════════════ */}
         {!searchQuery && (
@@ -529,68 +499,5 @@ export default function Shop() {
 
       </div>
     </div>
-  );
-}
-
-// ─── Featured card (image-only, no cart actions) ──────────────────────────────
-function FeaturedCard({ product, formatPrice }: { product: any; formatPrice: (n: number) => string }) {
-  const inStock = product.stock > 0;
-  const lowStock = product.stock > 0 && product.stock <= 5;
-  const hasDiscount = !!product.discount;
-
-  return (
-    <Link to={`/product/${product.id}`}>
-      <article className="group relative bg-white rounded-2xl border border-neutral-200 hover:border-[#a8dcc5] hover:shadow-xl hover:shadow-green-900/8 transition-all duration-300 overflow-hidden cursor-pointer">
-        {/* Image */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-          <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
-            <span className="bg-[#1a6b47] text-white text-[10px] font-extrabold px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-md">
-              {product.category}
-            </span>
-            {hasDiscount && (
-              <span className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
-                <Tag className="w-2.5 h-2.5" />-{product.discount.percentage}%
-              </span>
-            )}
-          </div>
-
-          {lowStock && (
-            <div className="absolute top-3 left-3">
-              <span className="inline-flex items-center gap-1 bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-md">
-                <Zap className="w-2.5 h-2.5" />{product.stock} left
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4">
-          <h3 className="font-bold text-neutral-900 text-[14px] leading-snug group-hover:text-[#1a6b47] transition-colors line-clamp-1 mb-1">
-            {product.name}
-          </h3>
-          <p className="text-neutral-400 text-xs line-clamp-1 mb-3">{product.description}</p>
-          <div className="flex items-center justify-between">
-            <p className="font-extrabold text-neutral-900 text-[15px]">
-              {hasDiscount
-                ? formatPrice(Math.round(product.price - product.price * product.discount.percentage / 100))
-                : formatPrice(product.price)}
-            </p>
-            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 ${
-              inStock ? 'bg-[#eaf5f0] text-[#1a6b47] border border-[#c5e8d9]' : 'bg-red-50 text-red-600 border border-red-200'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${inStock ? 'bg-[#2d9e6b]' : 'bg-red-500'}`} />
-              {inStock ? 'In Stock' : 'Out of Stock'}
-            </span>
-          </div>
-        </div>
-      </article>
-    </Link>
   );
 }
