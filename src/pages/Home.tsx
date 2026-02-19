@@ -6,8 +6,7 @@ import { supabase } from '../lib/supabase';
 import ScrollReveal from '../components/animations/ScrollReveal';
 import {
   MapPin, Phone, Mail, Store, ExternalLink,
-  Egg, Beef, ChevronLeft, ChevronRight,
-  ArrowRight, X, Sprout,
+  Egg, Beef, ArrowRight, X, Sprout, Wheat, Bird,
 } from 'lucide-react';
 
 const heroImages = [
@@ -20,17 +19,47 @@ const heroImages = [
 const categories = [
   {
     title: 'Poultry Feed',
-    description: 'Complete nutrition for chickens, ducks, and other poultry',
-    icon: Egg,
+    description: 'Precision-balanced nutrition for layers, broilers, and indigenous poultry breeds.',
+    icon: Bird,
     link: '/shop?category=poultry',
     tag: 'Most popular',
+    features: ['Layer mash & growers mash', 'Chick starter crumbles', 'Broiler finisher'],
+    stat: '50+ SKUs',
+    gradient: 'linear-gradient(135deg, #1b4332 0%, #2d6a4f 60%, #40916c 100%)',
+    accentColor: '#74c69d',
   },
   {
     title: 'Cattle Feed',
-    description: 'High-quality feed for dairy and beef cattle',
+    description: 'High-performance blends engineered for peak milk yield and healthy weight gain.',
     icon: Beef,
     link: '/shop?category=cattle',
     tag: 'Premium blend',
+    features: ['Dairy meal & dairy cubes', 'Calf starter & weaner', 'Mineral lick blocks'],
+    stat: 'Vet-approved',
+    gradient: 'linear-gradient(135deg, #0d2419 0%, #1b4332 60%, #2d6a4f 100%)',
+    accentColor: '#52b788',
+  },
+  {
+    title: 'Farm Fresh Eggs',
+    description: 'Free-range eggs collected daily from our own well-nourished flock on the farm.',
+    icon: Egg,
+    link: '/shop?category=eggs',
+    tag: 'Daily harvest',
+    features: ['Tray & crate quantities', 'Free-range certified', 'Same-day dispatch'],
+    stat: '100% free-range',
+    gradient: 'linear-gradient(135deg, #374151 0%, #1f2937 60%, #111827 100%)',
+    accentColor: '#d1fae5',
+  },
+  {
+    title: 'Other Feeds',
+    description: 'Rabbit, pig, goat and custom-blended concentrates for every animal on your farm.',
+    icon: Wheat,
+    link: '/shop?category=other',
+    tag: 'Custom blends',
+    features: ['Rabbit & pig pellets', 'Goat & sheep concentrates', 'Custom mill orders'],
+    stat: 'Custom orders',
+    gradient: 'linear-gradient(135deg, #1c3a2a 0%, #2d5016 60%, #3a6b1e 100%)',
+    accentColor: '#86efac',
   },
 ];
 
@@ -50,11 +79,12 @@ export default function Home() {
     return () => typed.destroy();
   }, []);
 
+  /* ── Auto-advance every 3 s ── */
   useEffect(() => {
     if (isPaused) return;
     const id = setInterval(() => {
       setCurrentImageIndex(p => (p === heroImages.length - 1 ? 0 : p + 1));
-    }, 5000);
+    }, 3000);
     return () => clearInterval(id);
   }, [isPaused]);
 
@@ -68,8 +98,7 @@ export default function Home() {
       const now = new Date().toISOString();
       const { data: discounts } = await supabase
         .from('discounts').select('*')
-        .lte('start_date', now)
-        .gte('end_date', now);
+        .lte('start_date', now).gte('end_date', now);
 
       setFeaturedProducts(
         products.map(p => ({
@@ -81,9 +110,8 @@ export default function Home() {
     fetchWithDiscounts();
   }, []);
 
-  const nextImage      = () => setCurrentImageIndex(p => (p === heroImages.length - 1 ? 0 : p + 1));
-  const prevImage      = () => setCurrentImageIndex(p => (p === 0 ? heroImages.length - 1 : p - 1));
-  const openGoogleMaps = () => window.open('https://maps.google.com/?q=-0.303099,36.080025', '_blank');
+  const openGoogleMaps = () =>
+    window.open('https://maps.google.com/?q=-0.303099,36.080025', '_blank');
 
   return (
     <>
@@ -97,10 +125,8 @@ export default function Home() {
            HERO
         ══════════════════════════════════════ */
         .hero {
-          position: relative;
-          height: 100svh; min-height: 620px;
-          overflow: hidden;
-          display: grid; place-items: center;
+          position: relative; height: 100svh; min-height: 620px;
+          overflow: hidden; display: grid; place-items: center;
         }
         .hero-slide {
           position: absolute; inset: 0;
@@ -128,17 +154,13 @@ export default function Home() {
 
         .hero-eyebrow {
           display: inline-flex; align-items: center; gap: 7px;
-          background: rgba(116,198,157,0.12);
-          border: 1px solid rgba(116,198,157,0.25);
+          background: rgba(116,198,157,0.12); border: 1px solid rgba(116,198,157,0.25);
           border-radius: 100px; padding: 5px 14px 5px 10px;
-          font-size: 11px; font-weight: 600;
-          letter-spacing: 1.8px; text-transform: uppercase;
-          color: #74c69d; margin-bottom: 24px;
-          width: fit-content; backdrop-filter: blur(10px);
+          font-size: 11px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase;
+          color: #74c69d; margin-bottom: 24px; width: fit-content; backdrop-filter: blur(10px);
         }
         .hero-eyebrow-dot {
-          width: 6px; height: 6px;
-          background: #74c69d; border-radius: 50%;
+          width: 6px; height: 6px; background: #74c69d; border-radius: 50%;
           animation: pulse-dot 2s ease-in-out infinite;
         }
         @keyframes pulse-dot {
@@ -156,20 +178,17 @@ export default function Home() {
           color: #74c69d; margin: 0 0 28px;
         }
         .hero-desc {
-          font-size: clamp(14px, 1.6vw, 16px);
-          color: rgba(255,255,255,0.62); max-width: 380px;
-          margin: 0 0 40px; line-height: 1.75;
+          font-size: clamp(14px, 1.6vw, 16px); color: rgba(255,255,255,0.62);
+          max-width: 380px; margin: 0 0 40px; line-height: 1.75;
         }
         .hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
         .btn-primary {
           display: inline-flex; align-items: center; gap: 8px;
-          padding: 14px 26px;
-          background: linear-gradient(135deg, #40916c, #2d6a4f);
+          padding: 14px 26px; background: linear-gradient(135deg, #40916c, #2d6a4f);
           color: #fff; font-family: 'DM Sans', sans-serif;
           font-size: 14px; font-weight: 600; border-radius: 14px;
-          text-decoration: none; border: none; cursor: pointer;
-          transition: all 0.25s ease;
+          text-decoration: none; border: none; cursor: pointer; transition: all 0.25s ease;
           box-shadow: 0 4px 24px rgba(45,106,79,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
         }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(45,106,79,0.5); }
@@ -177,16 +196,13 @@ export default function Home() {
 
         .btn-ghost {
           display: inline-flex; align-items: center; gap: 8px;
-          padding: 13px 26px;
-          background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85);
+          padding: 13px 26px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85);
           font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
-          border-radius: 14px; text-decoration: none;
-          border: 1px solid rgba(255,255,255,0.18);
+          border-radius: 14px; text-decoration: none; border: 1px solid rgba(255,255,255,0.18);
           cursor: pointer; transition: all 0.25s ease; backdrop-filter: blur(10px);
         }
         .btn-ghost:hover {
-          background: rgba(255,255,255,0.15);
-          border-color: rgba(255,255,255,0.35);
+          background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.35);
           transform: translateY(-2px);
         }
 
@@ -201,54 +217,14 @@ export default function Home() {
         }
         @keyframes scroll-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-        .carousel-btn {
-          position: absolute; top: 50%; transform: translateY(-50%);
-          z-index: 5; width: 42px; height: 42px; border-radius: 50%;
-          background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
-          color: #fff; display: flex; align-items: center; justify-content: center;
-          cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s ease;
-        }
-        .carousel-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-50%) scale(1.08); }
-        .carousel-btn.left  { left: 20px; }
-        .carousel-btn.right { right: 20px; }
-        @media (min-width: 768px) {
-          .carousel-btn.left  { left: 40px; }
-          .carousel-btn.right { right: 40px; }
-        }
-
-        .carousel-dots {
-          position: absolute; bottom: 88px; right: 40px;
-          display: flex; flex-direction: column; gap: 6px; z-index: 4;
-        }
-        @media (max-width: 767px) {
-          .carousel-dots { flex-direction: row; bottom: 88px; right: 50%; transform: translateX(50%); }
-        }
-        .carousel-dot {
-          border: none; cursor: pointer; padding: 0;
-          border-radius: 2px; background: rgba(255,255,255,0.3);
-          transition: all 0.35s ease;
-        }
-        @media (min-width: 768px) {
-          .carousel-dot { width: 3px; }
-          .carousel-dot.active { height: 28px; background: #74c69d; }
-          .carousel-dot:not(.active) { height: 10px; }
-        }
-        @media (max-width: 767px) {
-          .carousel-dot { height: 3px; }
-          .carousel-dot.active { width: 24px; background: #74c69d; }
-          .carousel-dot:not(.active) { width: 10px; }
-        }
-
         .hero-bar {
           position: absolute; bottom: 0; left: 0; right: 0; z-index: 4;
-          display: flex;
-          background: rgba(10,28,18,0.6); backdrop-filter: blur(16px);
+          display: flex; background: rgba(10,28,18,0.6); backdrop-filter: blur(16px);
           border-top: 1px solid rgba(255,255,255,0.06);
         }
         .hero-bar-item {
-          flex: 1; display: flex; align-items: center;
-          justify-content: center; gap: 8px; padding: 13px 16px;
-          font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.55);
+          flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+          padding: 13px 16px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.55);
           font-family: 'DM Sans', sans-serif; background: none; border: none;
           border-right: 1px solid rgba(255,255,255,0.06);
           cursor: pointer; text-decoration: none; transition: all 0.2s ease;
@@ -265,8 +241,7 @@ export default function Home() {
 
         .section-tag {
           display: inline-flex; align-items: center; gap: 8px;
-          font-size: 11px; font-weight: 700;
-          letter-spacing: 2.5px; text-transform: uppercase;
+          font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
           color: #40916c; margin-bottom: 16px;
         }
         .tag-bar { width: 18px; height: 2px; background: #40916c; border-radius: 1px; }
@@ -278,66 +253,138 @@ export default function Home() {
         .section-sub { font-size: 15px; color: #6b8c77; line-height: 1.7; max-width: 480px; }
 
         /* ══════════════════════════════════════
-           CATEGORIES
+           CATEGORIES — redesigned
         ══════════════════════════════════════ */
-        .bg-tint { background: #f8faf9; }
+        .bg-tint { background: #f0f7f3; }
 
         .cat-grid {
-          display: grid; gap: 16px; margin-top: 52px;
+          display: grid; gap: 20px; margin-top: 52px;
           grid-template-columns: 1fr;
         }
-        @media (min-width: 600px) { .cat-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 600px)  { .cat-grid { grid-template-columns: repeat(2, 1fr); } }
 
+        /* Card */
         .cat-card {
-          position: relative; display: block; text-decoration: none;
-          background: #fff; border: 1px solid #e2ede8;
-          border-radius: 24px; padding: 36px 36px 32px; overflow: hidden;
-          transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+          position: relative; display: flex; flex-direction: column;
+          text-decoration: none; border-radius: 28px; overflow: hidden;
+          background: #fff;
+          border: 1px solid rgba(0,0,0,0.06);
+          box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+          transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+          min-height: 380px;
         }
-        .cat-card-bg {
-          position: absolute; inset: 0;
-          background: radial-gradient(ellipse at 120% 120%, rgba(64,145,108,0.07) 0%, transparent 60%);
-          transition: opacity 0.3s ease; opacity: 0;
-        }
-        .cat-card:hover .cat-card-bg { opacity: 1; }
         .cat-card:hover {
-          border-color: #b7e4c7;
-          box-shadow: 0 20px 48px rgba(45,106,79,0.1);
-          transform: translateY(-4px);
+          transform: translateY(-6px);
+          box-shadow: 0 24px 56px rgba(0,0,0,0.13);
+          border-color: rgba(0,0,0,0.08);
+        }
+
+        /* Top gradient panel */
+        .cat-header {
+          position: relative; padding: 32px 28px 28px;
+          overflow: hidden; flex-shrink: 0;
+          min-height: 180px;
+          display: flex; flex-direction: column; justify-content: space-between;
+        }
+        /* Decorative orb inside header */
+        .cat-header-orb {
+          position: absolute; width: 180px; height: 180px;
+          border-radius: 50%; right: -40px; top: -40px;
+          background: rgba(255,255,255,0.06); pointer-events: none;
+        }
+        .cat-header-orb2 {
+          position: absolute; width: 100px; height: 100px;
+          border-radius: 50%; right: 30px; top: 60px;
+          background: rgba(255,255,255,0.04); pointer-events: none;
+        }
+
+        /* Tag + stat row */
+        .cat-header-top {
+          display: flex; align-items: center; justify-content: space-between;
+          position: relative; z-index: 1;
         }
         .cat-tag {
-          display: inline-block; font-size: 10px; font-weight: 700;
+          font-size: 10px; font-weight: 800;
           letter-spacing: 1.5px; text-transform: uppercase;
-          color: #40916c; background: #d8f3dc;
-          padding: 3px 10px; border-radius: 100px; margin-bottom: 20px;
+          color: #fff; background: rgba(255,255,255,0.18);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255,255,255,0.22);
+          padding: 4px 12px; border-radius: 100px;
         }
-        .cat-icon-ring {
-          width: 60px; height: 60px;
-          background: linear-gradient(135deg, #d8f3dc, #b7e4c7);
-          border-radius: 18px; display: flex; align-items: center; justify-content: center;
-          margin-bottom: 24px; transition: transform 0.3s ease;
+        .cat-stat {
+          font-size: 11px; font-weight: 700;
+          color: rgba(255,255,255,0.65);
+          background: rgba(0,0,0,0.2);
+          padding: 3px 10px; border-radius: 8px;
         }
-        .cat-card:hover .cat-icon-ring { transform: rotate(-4deg) scale(1.05); }
+
+        /* Icon */
+        .cat-icon-wrap {
+          position: relative; z-index: 1;
+          width: 64px; height: 64px; border-radius: 20px;
+          background: rgba(255,255,255,0.15);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.25);
+          display: flex; align-items: center; justify-content: center;
+          margin-top: 20px;
+          transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
+        }
+        .cat-card:hover .cat-icon-wrap { transform: scale(1.08) rotate(-4deg); }
+
+        /* Body */
+        .cat-body {
+          padding: 24px 28px 28px; flex: 1;
+          display: flex; flex-direction: column;
+        }
         .cat-title {
           font-family: 'Playfair Display', serif;
-          font-size: 24px; font-weight: 700; color: #0d2419; margin-bottom: 10px;
+          font-size: 22px; font-weight: 700; color: #0d2419;
+          margin-bottom: 8px; line-height: 1.2;
         }
-        .cat-desc { font-size: 14px; color: #6b8c77; line-height: 1.65; margin-bottom: 28px; }
-        .cat-arrow { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #40916c; }
-        .cat-arrow-icon {
-          width: 28px; height: 28px; background: #d8f3dc;
-          border-radius: 8px; display: flex; align-items: center; justify-content: center;
-          transition: all 0.25s ease;
+        .cat-desc {
+          font-size: 13.5px; color: #6b8c77; line-height: 1.65;
+          margin-bottom: 20px;
         }
-        .cat-card:hover .cat-arrow-icon { background: #40916c; color: #fff; transform: rotate(45deg); }
+
+        /* Feature list */
+        .cat-features {
+          list-style: none; padding: 0; margin: 0 0 24px;
+          display: flex; flex-direction: column; gap: 7px;
+        }
+        .cat-feature {
+          display: flex; align-items: center; gap: 8px;
+          font-size: 12.5px; color: #4a7c5f; font-weight: 500;
+        }
+        .cat-feature-dot {
+          width: 5px; height: 5px; border-radius: 50%;
+          background: #40916c; flex-shrink: 0;
+        }
+
+        /* CTA row */
+        .cat-footer {
+          margin-top: auto; padding-top: 18px;
+          border-top: 1px solid #eef5f1;
+          display: flex; align-items: center; justify-content: space-between;
+        }
+        .cat-cta-text {
+          font-size: 13px; font-weight: 700; color: #2d6a4f;
+        }
+        .cat-arrow-btn {
+          width: 36px; height: 36px; border-radius: 12px;
+          background: #d8f3dc; display: flex; align-items: center; justify-content: center;
+          color: #1b4332; flex-shrink: 0;
+          transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+        }
+        .cat-card:hover .cat-arrow-btn {
+          background: #2d6a4f; color: #fff; transform: rotate(45deg);
+        }
 
         /* ══════════════════════════════════════
            FEATURED PRODUCTS
         ══════════════════════════════════════ */
         .products-row {
-          display: flex; align-items: flex-end;
-          justify-content: space-between; gap: 16px;
-          flex-wrap: wrap; margin-bottom: 44px;
+          display: flex; align-items: flex-end; justify-content: space-between;
+          gap: 16px; flex-wrap: wrap; margin-bottom: 44px;
         }
         .view-all {
           display: inline-flex; align-items: center; gap: 6px;
@@ -351,25 +398,15 @@ export default function Home() {
         .prod-grid {
           display: grid; gap: 20px; width: 100%;
           grid-template-columns: 1fr;
-          grid-auto-rows: 1fr; align-items: stretch;
         }
         @media (min-width: 600px)  { .prod-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .prod-grid { grid-template-columns: repeat(4, 1fr); } }
-
-        .prod-cell {
-          min-width: 0; width: 100%; height: 100%;
-          display: flex; flex-direction: column;
-        }
-        .prod-cell > div {
-          width: 100%; height: 100%;
-          display: flex; flex-direction: column;
-        }
 
         .prod-card {
           display: flex; flex-direction: column;
           text-decoration: none; background: #fff;
           border: 1px solid #e2ede8; border-radius: 20px;
-          overflow: hidden; width: 100%; min-width: 0; height: 100%;
+          overflow: hidden; width: 100%; height: 100%;
           transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
         }
         .prod-card:hover {
@@ -377,32 +414,26 @@ export default function Home() {
           box-shadow: 0 16px 40px rgba(45,106,79,0.1);
           transform: translateY(-4px);
         }
-
         .prod-img {
           position: relative; width: 100%; height: 200px;
           flex-shrink: 0; overflow: hidden; background: #f0f7f3;
         }
         .prod-img img {
-          position: absolute; inset: 0;
-          width: 100%; height: 100%;
+          position: absolute; inset: 0; width: 100%; height: 100%;
           object-fit: cover; object-position: center; display: block;
           transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
         }
         .prod-card:hover .prod-img img { transform: scale(1.06); }
-
         .prod-cat-badge {
           position: absolute; top: 12px; left: 12px;
-          font-size: 10px; font-weight: 700;
-          letter-spacing: 0.8px; text-transform: uppercase;
+          font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
           background: rgba(10,28,18,0.72); color: #74c69d;
-          padding: 4px 10px; border-radius: 8px;
-          backdrop-filter: blur(8px); white-space: nowrap;
+          padding: 4px 10px; border-radius: 8px; backdrop-filter: blur(8px); white-space: nowrap;
         }
         .prod-discount-badge {
           position: absolute; top: 12px; right: 12px;
           font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
-          background: #ef4444; color: #fff;
-          padding: 4px 8px; border-radius: 8px; line-height: 1.3;
+          background: #ef4444; color: #fff; padding: 4px 8px; border-radius: 8px; line-height: 1.3;
         }
         .prod-stock-dot {
           position: absolute; top: 12px; right: 12px;
@@ -410,51 +441,38 @@ export default function Home() {
         }
         .prod-stock-dot.in  { background: #74c69d; box-shadow: 0 0 0 3px rgba(116,198,157,0.25); }
         .prod-stock-dot.out { background: #f87171; box-shadow: 0 0 0 3px rgba(248,113,113,0.25); }
-
-        .prod-body {
-          padding: 18px; flex: 1;
-          display: flex; flex-direction: column;
-        }
+        .prod-body { padding: 18px; flex: 1; display: flex; flex-direction: column; }
         .prod-name {
           font-family: 'Playfair Display', serif;
           font-size: 16px; font-weight: 700; color: #0d2419;
           margin-bottom: 5px; line-height: 1.3;
-          display: -webkit-box;
-          -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
         .prod-desc {
-          font-size: 12.5px; color: #6b8c77;
-          line-height: 1.6; flex: 1; margin-bottom: 16px;
-          display: -webkit-box;
-          -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+          font-size: 12.5px; color: #6b8c77; line-height: 1.6; flex: 1; margin-bottom: 16px;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
         .prod-foot {
-          display: flex; align-items: flex-end;
-          justify-content: space-between;
-          padding-top: 14px; border-top: 1px solid #f0f7f3;
-          margin-top: auto; gap: 8px;
+          display: flex; align-items: flex-end; justify-content: space-between;
+          padding-top: 14px; border-top: 1px solid #f0f7f3; margin-top: auto; gap: 8px;
         }
         .prod-price {
-          font-family: 'Playfair Display', serif;
-          font-size: 20px; font-weight: 700;
+          font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700;
           color: #2d6a4f; letter-spacing: -0.4px;
         }
         .prod-price-wrap { display: flex; flex-direction: column; gap: 1px; }
         .prod-price-original {
-          font-size: 11px; font-weight: 500;
-          color: #a0b8aa; text-decoration: line-through; line-height: 1;
+          font-size: 11px; font-weight: 500; color: #a0b8aa;
+          text-decoration: line-through; line-height: 1;
         }
         .prod-price-discounted {
-          font-family: 'Playfair Display', serif;
-          font-size: 20px; font-weight: 700;
+          font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700;
           color: #2d6a4f; letter-spacing: -0.4px; line-height: 1.15;
         }
-        .prod-price-savings {
-          font-size: 10px; font-weight: 600; color: #40916c; margin-top: 1px;
-        }
+        .prod-price-savings { font-size: 10px; font-weight: 600; color: #40916c; margin-top: 1px; }
         .prod-stock-label {
-          font-size: 11px; font-weight: 600;
-          padding: 3px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
+          font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 8px;
+          white-space: nowrap; flex-shrink: 0;
         }
         .prod-stock-label.in  { background: #d8f3dc; color: #1b4332; }
         .prod-stock-label.out { background: #fee2e2; color: #991b1b; }
@@ -462,10 +480,7 @@ export default function Home() {
         /* ══════════════════════════════════════
            CTA
         ══════════════════════════════════════ */
-        .cta-wrap {
-          background: #0d2419; position: relative;
-          overflow: hidden; padding: 100px 0;
-        }
+        .cta-wrap { background: #0d2419; position: relative; overflow: hidden; padding: 100px 0; }
         .cta-noise {
           position: absolute; inset: 0;
           background-image:
@@ -481,17 +496,14 @@ export default function Home() {
           mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
         }
         .cta-inner {
-          position: relative; z-index: 1;
-          max-width: 700px; margin: 0 auto;
+          position: relative; z-index: 1; max-width: 700px; margin: 0 auto;
           padding: 0 24px; text-align: center;
         }
         .cta-eyebrow {
           display: inline-flex; align-items: center; gap: 8px;
-          background: rgba(116,198,157,0.1);
-          border: 1px solid rgba(116,198,157,0.18);
+          background: rgba(116,198,157,0.1); border: 1px solid rgba(116,198,157,0.18);
           border-radius: 100px; padding: 5px 16px 5px 10px;
-          font-size: 11px; font-weight: 700;
-          letter-spacing: 2px; text-transform: uppercase;
+          font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
           color: #74c69d; margin-bottom: 28px;
         }
         .cta-h2 {
@@ -507,59 +519,47 @@ export default function Home() {
            MODAL
         ══════════════════════════════════════ */
         .modal-bg {
-          position: fixed; inset: 0;
-          background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
-          z-index: 200; display: flex;
-          align-items: flex-end; justify-content: center;
+          position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
+          z-index: 200; display: flex; align-items: flex-end; justify-content: center;
         }
         @media (min-width: 600px) { .modal-bg { align-items: center; padding: 24px; } }
-
         .modal-card {
           background: #fff; width: 100%; max-width: 460px;
-          border-radius: 28px 28px 0 0;
-          padding: 36px 28px 40px; position: relative;
-          box-shadow: 0 -8px 64px rgba(0,0,0,0.2);
+          border-radius: 28px 28px 0 0; padding: 36px 28px 40px;
+          position: relative; box-shadow: 0 -8px 64px rgba(0,0,0,0.2);
         }
         @media (min-width: 600px) { .modal-card { border-radius: 28px; padding: 44px; } }
-
         .modal-handle {
           width: 40px; height: 4px; background: #e2ede8;
           border-radius: 2px; margin: 0 auto 28px;
         }
         @media (min-width: 600px) { .modal-handle { display: none; } }
-
         .modal-close {
           position: absolute; top: 20px; right: 20px;
-          width: 34px; height: 34px; background: #f0f7f3;
-          border: none; border-radius: 10px;
+          width: 34px; height: 34px; background: #f0f7f3; border: none; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; color: #6b8c77; transition: all 0.15s ease;
         }
         .modal-close:hover { background: #d8f3dc; color: #2d6a4f; }
         .modal-h2 {
-          font-family: 'Playfair Display', serif;
-          font-size: 26px; font-weight: 700; color: #0d2419;
-          margin-bottom: 6px; letter-spacing: -0.4px;
+          font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700;
+          color: #0d2419; margin-bottom: 6px; letter-spacing: -0.4px;
         }
         .modal-sub { font-size: 13.5px; color: #6b8c77; margin-bottom: 32px; line-height: 1.6; }
-
         .contact-list { display: flex; flex-direction: column; gap: 12px; }
         .contact-row {
           display: flex; align-items: flex-start; gap: 14px;
-          padding: 16px; background: #f8faf9;
-          border-radius: 16px; border: 1px solid #e2ede8;
-          transition: border-color 0.2s ease;
+          padding: 16px; background: #f8faf9; border-radius: 16px;
+          border: 1px solid #e2ede8; transition: border-color 0.2s ease;
         }
         .contact-row:hover { border-color: #b7e4c7; }
         .contact-icon {
-          width: 40px; height: 40px; flex-shrink: 0;
-          background: #fff; border: 1px solid #e2ede8;
-          border-radius: 12px; display: flex; align-items: center;
-          justify-content: center; color: #40916c;
+          width: 40px; height: 40px; flex-shrink: 0; background: #fff;
+          border: 1px solid #e2ede8; border-radius: 12px;
+          display: flex; align-items: center; justify-content: center; color: #40916c;
         }
         .contact-label {
-          font-size: 10px; font-weight: 700;
-          letter-spacing: 1.5px; text-transform: uppercase;
+          font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
           color: #6b8c77; margin-bottom: 4px;
         }
         .contact-value { font-size: 13.5px; color: #0d2419; font-weight: 500; }
@@ -574,18 +574,17 @@ export default function Home() {
         .maps-link:hover { color: #2d6a4f; }
         .modal-cta {
           width: 100%; margin-top: 24px; padding: 14px;
-          background: linear-gradient(135deg, #40916c, #2d6a4f);
-          color: #fff; font-family: 'DM Sans', sans-serif;
-          font-size: 14px; font-weight: 600;
-          border: none; border-radius: 14px; cursor: pointer;
-          transition: all 0.2s ease; box-shadow: 0 4px 16px rgba(45,106,79,0.3);
+          background: linear-gradient(135deg, #40916c, #2d6a4f); color: #fff;
+          font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+          border: none; border-radius: 14px; cursor: pointer; transition: all 0.2s ease;
+          box-shadow: 0 4px 16px rgba(45,106,79,0.3);
         }
         .modal-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(45,106,79,0.4); }
       `}</style>
 
       <div className="home-root">
 
-        {/* ══ HERO ══════════════════════════════════════════════════════════ */}
+        {/* ══ HERO ══ */}
         <section
           className="hero"
           onMouseEnter={() => setIsPaused(true)}
@@ -608,12 +607,7 @@ export default function Home() {
           ))}
           <div className="hero-overlay" />
 
-          <button className="carousel-btn left" onClick={prevImage} aria-label="Previous">
-            <ChevronLeft size={18} />
-          </button>
-          <button className="carousel-btn right" onClick={nextImage} aria-label="Next">
-            <ChevronRight size={18} />
-          </button>
+          {/* ── arrows and dots REMOVED ── */}
 
           <div className="hero-content">
             <motion.div
@@ -658,17 +652,6 @@ export default function Home() {
 
           <div className="hero-scroll"><div className="scroll-line" /></div>
 
-          <div className="carousel-dots">
-            {heroImages.map((_, i) => (
-              <button
-                key={i}
-                className={`carousel-dot ${currentImageIndex === i ? 'active' : ''}`}
-                onClick={() => setCurrentImageIndex(i)}
-                aria-label={`Slide ${i + 1}`}
-              />
-            ))}
-          </div>
-
           <div className="hero-bar">
             <button className="hero-bar-item" onClick={openGoogleMaps}>
               <MapPin size={13} />Limuru, Kiambu
@@ -682,7 +665,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ CATEGORIES ════════════════════════════════════════════════════ */}
+        {/* ══ CATEGORIES ══ */}
         <section className="section bg-tint">
           <div className="section-inner">
             <ScrollReveal>
@@ -695,19 +678,49 @@ export default function Home() {
 
             <div className="cat-grid">
               {categories.map((cat, i) => (
-                <ScrollReveal key={cat.title} direction={i % 2 === 0 ? 'left' : 'right'} delay={i * 0.1}>
+                <ScrollReveal key={cat.title} direction={i % 2 === 0 ? 'left' : 'right'} delay={i * 0.08}>
                   <Link to={cat.link} className="cat-card">
-                    <div className="cat-card-bg" />
-                    <span className="cat-tag">{cat.tag}</span>
-                    <div className="cat-icon-ring">
-                      <cat.icon size={26} color="#2d6a4f" strokeWidth={1.7} />
+
+                    {/* Gradient header */}
+                    <div
+                      className="cat-header"
+                      style={{ background: cat.gradient }}
+                    >
+                      <div className="cat-header-orb" />
+                      <div className="cat-header-orb2" />
+
+                      <div className="cat-header-top">
+                        <span className="cat-tag">{cat.tag}</span>
+                        <span className="cat-stat">{cat.stat}</span>
+                      </div>
+
+                      <div className="cat-icon-wrap">
+                        <cat.icon size={28} color={cat.accentColor} strokeWidth={1.6} />
+                      </div>
                     </div>
-                    <h3 className="cat-title">{cat.title}</h3>
-                    <p className="cat-desc">{cat.description}</p>
-                    <span className="cat-arrow">
-                      Browse products
-                      <span className="cat-arrow-icon"><ArrowRight size={13} /></span>
-                    </span>
+
+                    {/* Body */}
+                    <div className="cat-body">
+                      <h3 className="cat-title">{cat.title}</h3>
+                      <p className="cat-desc">{cat.description}</p>
+
+                      <ul className="cat-features">
+                        {cat.features.map(f => (
+                          <li key={f} className="cat-feature">
+                            <span className="cat-feature-dot" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div className="cat-footer">
+                        <span className="cat-cta-text">Browse products</span>
+                        <span className="cat-arrow-btn">
+                          <ArrowRight size={15} />
+                        </span>
+                      </div>
+                    </div>
+
                   </Link>
                 </ScrollReveal>
               ))}
@@ -715,7 +728,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ FEATURED PRODUCTS ═════════════════════════════════════════════ */}
+        {/* ══ FEATURED PRODUCTS ══ */}
         {featuredProducts.length > 0 && (
           <section className="section">
             <div className="section-inner">
@@ -726,9 +739,7 @@ export default function Home() {
                     <h2 className="section-h2">Featured products</h2>
                   </div>
                 </ScrollReveal>
-                <Link to="/shop" className="view-all">
-                  View all <ArrowRight size={13} />
-                </Link>
+                <Link to="/shop" className="view-all">View all <ArrowRight size={13} /></Link>
               </div>
 
               <div className="prod-grid">
@@ -742,47 +753,39 @@ export default function Home() {
                     : 0;
 
                   return (
-                    <div key={p.id} className="prod-cell">
-                      <ScrollReveal delay={i * 0.07}>
-                        <Link to={`/product/${p.id}`} className="prod-card">
-                          <div className="prod-img">
-                            <img src={p.image_url} alt={p.name} loading="lazy" />
-                            {p.category && (
-                              <span className="prod-cat-badge">{p.category}</span>
-                            )}
+                    <ScrollReveal key={p.id} delay={i * 0.07}>
+                      <Link to={`/product/${p.id}`} className="prod-card">
+                        <div className="prod-img">
+                          <img src={p.image_url} alt={p.name} loading="lazy" />
+                          {p.category && (
+                            <span className="prod-cat-badge">{p.category}</span>
+                          )}
+                          {hasDiscount ? (
+                            <span className="prod-discount-badge">-{p.discount.percentage}%</span>
+                          ) : (
+                            <span className={`prod-stock-dot ${p.stock > 0 ? 'in' : 'out'}`} />
+                          )}
+                        </div>
+                        <div className="prod-body">
+                          <h3 className="prod-name">{p.name}</h3>
+                          <p className="prod-desc">{p.description}</p>
+                          <div className="prod-foot">
                             {hasDiscount ? (
-                              <span className="prod-discount-badge">-{p.discount.percentage}%</span>
+                              <div className="prod-price-wrap">
+                                <span className="prod-price-original">KES {p.price.toLocaleString()}</span>
+                                <span className="prod-price-discounted">KES {discountedPrice.toLocaleString()}</span>
+                                <span className="prod-price-savings">Save KES {savings.toLocaleString()}</span>
+                              </div>
                             ) : (
-                              <span className={`prod-stock-dot ${p.stock > 0 ? 'in' : 'out'}`} />
+                              <span className="prod-price">KES {p.price.toLocaleString()}</span>
                             )}
+                            <span className={`prod-stock-label ${p.stock > 0 ? 'in' : 'out'}`}>
+                              {p.stock > 0 ? 'In stock' : 'Out of stock'}
+                            </span>
                           </div>
-                          <div className="prod-body">
-                            <h3 className="prod-name">{p.name}</h3>
-                            <p className="prod-desc">{p.description}</p>
-                            <div className="prod-foot">
-                              {hasDiscount ? (
-                                <div className="prod-price-wrap">
-                                  <span className="prod-price-original">
-                                    KES {p.price.toLocaleString()}
-                                  </span>
-                                  <span className="prod-price-discounted">
-                                    KES {discountedPrice.toLocaleString()}
-                                  </span>
-                                  <span className="prod-price-savings">
-                                    Save KES {savings.toLocaleString()}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="prod-price">KES {p.price.toLocaleString()}</span>
-                              )}
-                              <span className={`prod-stock-label ${p.stock > 0 ? 'in' : 'out'}`}>
-                                {p.stock > 0 ? 'In stock' : 'Out of stock'}
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      </ScrollReveal>
-                    </div>
+                        </div>
+                      </Link>
+                    </ScrollReveal>
                   );
                 })}
               </div>
@@ -790,7 +793,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* ══ CTA ═══════════════════════════════════════════════════════════ */}
+        {/* ══ CTA ══ */}
         <section className="cta-wrap">
           <div className="cta-noise" />
           <div className="cta-grid-lines" />
@@ -813,7 +816,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ CONTACT MODAL ══════════════════════════════════════════════════ */}
+        {/* ══ CONTACT MODAL ══ */}
         <AnimatePresence>
           {showContact && (
             <motion.div
