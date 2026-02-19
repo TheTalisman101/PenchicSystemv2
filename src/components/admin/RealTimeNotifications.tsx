@@ -1,372 +1,323 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Check, AlertCircle, Info, Clock, X, Wifi, WifiOff, Users, ShoppingCart, Package, AlertTriangle, TrendingUp, CheckCircle2, MoreHorizontal } from 'lucide-react';
+import {
+  Bell, AlertCircle, Info, Clock, X,
+  Users, ShoppingCart, Package, AlertTriangle, TrendingUp, CheckCircle,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRealTimeNotifications, Notification } from '../../hooks/useRealTimeNotifications';
 
+// ── Type config — single source of truth for all notification types ────────────
+const NOTIF_CFG: Record<string, {
+  Icon: React.FC<React.SVGProps<SVGSVGElement>>;
+  color: string;
+  unreadBg: string;
+}> = {
+  new_user:            { Icon: Users,         color: 'text-sky-500',     unreadBg: 'bg-sky-50     border-l-sky-400'     },
+  order_update:        { Icon: ShoppingCart,  color: 'text-emerald-500', unreadBg: 'bg-emerald-50 border-l-emerald-400' },
+  low_stock:           { Icon: Package,       color: 'text-amber-500',   unreadBg: 'bg-amber-50   border-l-amber-400'   },
+  system_alert:        { Icon: AlertTriangle, color: 'text-red-500',     unreadBg: 'bg-red-50     border-l-red-400'     },
+  analytics_milestone: { Icon: TrendingUp,    color: 'text-violet-500',  unreadBg: 'bg-violet-50  border-l-violet-400'  },
+  content_submission:  { Icon: Info,          color: 'text-indigo-500',  unreadBg: 'bg-indigo-50  border-l-indigo-400'  },
+};
+const FALLBACK_CFG = { Icon: Info, color: 'text-neutral-500', unreadBg: 'bg-neutral-50 border-l-neutral-300' };
+
+// Priority for sorting (lower = higher priority)
+const PRIORITY: Record<string, number> = {
+  system_alert: 1, low_stock: 2, order_update: 3, analytics_milestone: 4, new_user: 5,
+};
+
+// Static category config — counts computed at runtime
+const CATEGORY_DEFS = [
+  { id: 'all',                 label: 'All'       },
+  { id: 'system_alert',        label: 'System'    },
+  { id: 'order_update',        label: 'Orders'    },
+  { id: 'low_stock',           label: 'Stock'     },
+  { id: 'new_user',            label: 'Users'     },
+  { id: 'analytics_milestone', label: 'Analytics' },
+] as const;
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+const formatTimeAgo = (date: Date): string => {
+  const mins = Math.floor((Date.now() - date.getTime()) / 60_000);
+  if (mins < 1)    return 'Just now';
+  if (mins < 60)   return `${mins}m ago`;
+  if (mins < 1440) return `${Math.floor(mins / 60)}h ago`;
+  return `${Math.floor(mins / 1440)}d ago`;
+};
+
+// ── Component ──────────────────────────────────────────────────────────────────
 const RealTimeNotifications: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen,           setIsOpen]           = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [showUnreadOnly,   setShowUnreadOnly]   = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
   const {
-    notifications,
-    unreadCount,
-    markAsRead,
-    markAllAsRead,
-    clearAll,
-    isConnected,
-    connectionError
+    notifications, unreadCount,
+    markAsRead, markAllAsRead, clearAll,
+    isConnected, connectionError,
   } = useRealTimeNotifications();
 
-  // Close dropdown when clicking outside
+  // Close on outside click
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
         setIsOpen(false);
-      }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Get notification icon based on type
-  const getNotificationIcon = (type: Notification['type']) => {
-    switch (type) {
-      case 'new_user':
-        return <Users className="w-5 h-5 text-blue-500" />;
-      case 'order_update':
-        return <ShoppingCart className="w-5 h-5 text-green-500" />;
-      case 'low_stock':
-        return <Package className="w-5 h-5 text-yellow-500" />;
-      case 'system_alert':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />;
-      case 'analytics_milestone':
-        return <TrendingUp className="w-5 h-5 text-purple-500" />;
-      case 'content_submission':
-        return <Info className="w-5 h-5 text-indigo-500" />;
-      default:
-        return <Info className="w-5 h-5 text-blue-500" />;
-    }
-  };
-
-  // Format time ago
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
-  };
-
-  // Get notification background color
-  const getNotificationBg = (notification: Notification) => {
-    if (!notification.read) {
-      switch (notification.type) {
-        case 'system_alert':
-          return 'bg-red-50 border-l-red-400';
-        case 'low_stock':
-          return 'bg-yellow-50 border-l-yellow-400';
-        case 'order_update':
-          return 'bg-green-50 border-l-green-400';
-        case 'new_user':
-          return 'bg-blue-50 border-l-blue-400';
-        case 'analytics_milestone':
-          return 'bg-purple-50 border-l-purple-400';
-        default:
-          return 'bg-indigo-50 border-l-indigo-400';
-      }
-    }
-    return 'bg-white border-l-neutral-200';
-  };
-
-  // Get notification priority
-  const getNotificationPriority = (type: Notification['type']) => {
-    switch (type) {
-      case 'system_alert': return 1;
-      case 'low_stock': return 2;
-      case 'order_update': return 3;
-      case 'analytics_milestone': return 4;
-      case 'new_user': return 5;
-      default: return 6;
-    }
-  };
-
-  // Filter and sort notifications
-  const filteredNotifications = notifications
-    .filter(notification => {
-      if (selectedCategory !== 'all' && notification.type !== selectedCategory) return false;
-      if (showUnreadOnly && notification.read) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      // Sort by read status first (unread first), then by priority, then by timestamp
-      if (a.read !== b.read) return a.read ? 1 : -1;
-      const priorityDiff = getNotificationPriority(a.type) - getNotificationPriority(b.type);
-      if (priorityDiff !== 0) return priorityDiff;
-      return b.timestamp.getTime() - a.timestamp.getTime();
-    });
-
-  // Get category counts
-  const categoryCounts = notifications.reduce((acc, notification) => {
-    acc[notification.type] = (acc[notification.type] || 0) + 1;
+  // Counts per category
+  const categoryCounts = notifications.reduce((acc, n) => {
+    acc[n.type] = (acc[n.type] ?? 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  const categories = [
-    { id: 'all', label: 'All', count: notifications.length },
-    { id: 'system_alert', label: 'System', count: categoryCounts.system_alert || 0, color: 'text-red-600' },
-    { id: 'order_update', label: 'Orders', count: categoryCounts.order_update || 0, color: 'text-green-600' },
-    { id: 'low_stock', label: 'Stock', count: categoryCounts.low_stock || 0, color: 'text-yellow-600' },
-    { id: 'new_user', label: 'Users', count: categoryCounts.new_user || 0, color: 'text-blue-600' },
-    { id: 'analytics_milestone', label: 'Analytics', count: categoryCounts.analytics_milestone || 0, color: 'text-purple-600' }
-  ];
+  // Filter + sort
+  const filtered = notifications
+    .filter(n =>
+      (selectedCategory === 'all' || n.type === selectedCategory) &&
+      (!showUnreadOnly || !n.read)
+    )
+    .sort((a, b) => {
+      if (a.read !== b.read) return a.read ? 1 : -1;
+      const pd = (PRIORITY[a.type] ?? 99) - (PRIORITY[b.type] ?? 99);
+      if (pd !== 0) return pd;
+      return b.timestamp.getTime() - a.timestamp.getTime();
+    });
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Enhanced Notification Button */}
+
+      {/* ── Bell button ───────────────────────────────────────────────────── */}
       <motion.button
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-3 hover:bg-neutral-100 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 group"
+        whileTap={{ scale: 0.93 }}
+        onClick={() => setIsOpen(v => !v)}
+        className="relative p-2.5 rounded-xl hover:bg-neutral-100 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06]"
         aria-label="Notifications"
       >
-        <Bell className="w-6 h-6 text-neutral-600 group-hover:text-neutral-800 transition-colors" />
-        
-        {/* Enhanced Unread Count Badge */}
+        <Bell className="w-5 h-5 text-neutral-600" />
+
+        {/* Unread count — top-right */}
         <AnimatePresence>
           {unreadCount > 0 && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              className="absolute -top-1 -right-1 min-w-[22px] h-6 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full flex items-center justify-center px-1.5 font-bold shadow-lg"
+            <motion.span
+              initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white
+                text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none"
             >
               {unreadCount > 99 ? '99+' : unreadCount}
-            </motion.div>
+            </motion.span>
           )}
         </AnimatePresence>
 
-        {/* Connection Status Indicator */}
-        <div className="absolute -bottom-1 -right-1">
-          <motion.div
-            animate={{ scale: isConnected ? [1, 1.2, 1] : 1 }}
-            transition={{ duration: 2, repeat: isConnected ? Infinity : 0 }}
-          >
-            {isConnected ? (
-              <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm" />
-            ) : (
-              <div className="w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-sm" />
-            )}
-          </motion.div>
-        </div>
+        {/* Connection dot — bottom-left (doesn't conflict with unread badge) */}
+        <span className={`absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full border-2 border-white ${
+          isConnected ? 'bg-emerald-500' : 'bg-red-400'
+        }`} />
       </motion.button>
 
-      {/* Enhanced Notifications Dropdown */}
+      {/* ── Dropdown panel ────────────────────────────────────────────────── */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute top-full right-0 mt-3 w-96 bg-white border border-neutral-200 rounded-2xl shadow-2xl z-50 max-h-[85vh] flex flex-col overflow-hidden"
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0,  scale: 1    }}
+            exit={{    opacity: 0, y: -8, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="absolute top-full right-0 mt-2.5 w-96 bg-white border border-neutral-200
+              rounded-2xl shadow-2xl shadow-neutral-900/10 z-50 max-h-[85vh] flex flex-col overflow-hidden"
           >
-            {/* Enhanced Header */}
-            <div className="p-6 border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-neutral-100">
+
+            {/* ── Header ──────────────────────────────────────────────────── */}
+            <div className="px-5 pt-5 pb-4 border-b border-neutral-100">
+
+              {/* Title + connection status + close */}
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Bell className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-neutral-900">Notifications</h3>
-                    <p className="text-sm text-neutral-600">
-                      {unreadCount} unread of {notifications.length} total
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-neutral-900">Notifications</h3>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {unreadCount > 0 ? `${unreadCount} unread · ` : 'All caught up · '}
+                    {notifications.length} total
+                  </p>
                 </div>
-                
                 <div className="flex items-center gap-2">
-                  {isConnected ? (
-                    <div className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full">
-                      <Wifi className="w-3 h-3" />
-                      <span>Live</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-xs text-red-700 bg-red-100 px-2 py-1 rounded-full">
-                      <WifiOff className="w-3 h-3" />
-                      <span>Offline</span>
-                    </div>
-                  )}
+                  <div className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full ${
+                    isConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
+                    }`} />
+                    {isConnected ? 'Live' : 'Offline'}
+                  </div>
+                  <button onClick={() => setIsOpen(false)}
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
-              {/* Category Filters */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      selectedCategory === category.id
-                        ? 'bg-primary text-white shadow-md'
-                        : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-neutral-200'
-                    }`}
-                  >
-                    <span>{category.label}</span>
-                    {category.count > 0 && (
-                      <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-                        selectedCategory === category.id
-                          ? 'bg-white/20 text-white'
-                          : 'bg-neutral-200 text-neutral-600'
+              {/* Category filter pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 mb-3
+                [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {CATEGORY_DEFS.map(cat => {
+                  const count  = cat.id === 'all' ? notifications.length : (categoryCounts[cat.id] ?? 0);
+                  const active = selectedCategory === cat.id;
+                  return (
+                    <button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                        whitespace-nowrap flex-shrink-0 transition-all ${
+                        active
+                          ? 'bg-neutral-900 text-white'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}>
-                        {category.count}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                      {cat.label}
+                      {count > 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                          active ? 'bg-white/20 text-white' : 'bg-neutral-200 text-neutral-500'
+                        }`}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Action Buttons */}
+              {/* Action bar */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowUnreadOnly(!showUnreadOnly)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      showUnreadOnly
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                    }`}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    Unread Only
-                  </button>
-                </div>
-                
-                <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowUnreadOnly(v => !v)}
+                  className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
+                    showUnreadOnly
+                      ? 'bg-neutral-900 text-white'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  }`}>
+                  <CheckCircle className="w-3 h-3" />
+                  Unread only
+                </button>
+
+                <div className="flex items-center gap-1.5">
                   {unreadCount > 0 && (
-                    <button
-                      onClick={markAllAsRead}
-                      className="text-xs text-primary hover:text-primary-dark transition-colors font-medium px-3 py-1.5 bg-primary/10 rounded-lg hover:bg-primary/20"
-                    >
+                    <button onClick={markAllAsRead}
+                      className="text-xs font-semibold text-neutral-600 hover:text-neutral-900
+                        px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors">
                       Mark all read
                     </button>
                   )}
-                  <button
-                    onClick={clearAll}
-                    className="text-xs text-red-600 hover:text-red-700 transition-colors font-medium px-3 py-1.5 bg-red-50 rounded-lg hover:bg-red-100"
-                  >
+                  <button onClick={clearAll}
+                    className="text-xs font-semibold text-red-600 hover:text-red-700
+                      px-2.5 py-1.5 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                     Clear all
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Connection Error */}
+            {/* Connection error banner */}
             {connectionError && (
-              <div className="p-4 bg-yellow-50 border-b border-yellow-200 text-yellow-800 text-sm">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>{connectionError}</span>
-                </div>
+              <div className="flex items-center gap-2 px-5 py-3 bg-amber-50 border-b border-amber-200
+                text-xs text-amber-800 font-medium">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                {connectionError}
               </div>
             )}
 
-            {/* Enhanced Notifications List */}
-            <div className="flex-1 overflow-y-auto">
-              {filteredNotifications.length > 0 ? (
-                <div className="divide-y divide-neutral-100">
-                  {filteredNotifications.map((notification, index) => (
+            {/* ── Notifications list ───────────────────────────────────────── */}
+            <div className="flex-1 overflow-y-auto divide-y divide-neutral-100">
+              {filtered.length > 0 ? (
+                filtered.map((notification, idx) => {
+                  const cfg  = NOTIF_CFG[notification.type] ?? FALLBACK_CFG;
+                  const Icon = cfg.Icon;
+                  return (
                     <motion.div
                       key={notification.id}
-                      initial={{ opacity: 0, x: -20 }}
+                      initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`p-4 hover:bg-neutral-50 cursor-pointer transition-all duration-200 border-l-4 ${getNotificationBg(notification)} group`}
+                      transition={{ delay: Math.min(idx * 0.03, 0.25) }}
                       onClick={() => markAsRead(notification.id)}
+                      className={`relative px-5 py-4 border-l-[3px] cursor-pointer transition-all group ${
+                        notification.read
+                          ? 'bg-white hover:bg-neutral-50/60 border-l-transparent'
+                          : `${cfg.unreadBg} hover:brightness-[0.98]`
+                      }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 mt-1">
-                          {getNotificationIcon(notification.type)}
+                        {/* Icon */}
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          notification.read ? 'bg-neutral-100' : 'bg-white/80'
+                        }`}>
+                          <Icon className={`w-4 h-4 ${cfg.color}`} />
                         </div>
-                        
+
+                        {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="font-semibold text-neutral-900 text-sm">
-                                  {notification.title}
-                                </p>
-                                {!notification.read && (
-                                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                                )}
-                              </div>
-                              <p className="text-sm text-neutral-600 leading-relaxed">
-                                {notification.message}
-                              </p>
-                            </div>
+                          {/* Title + unread dot */}
+                          <div className="flex items-center gap-2 min-w-0">
+                            <p className="text-sm font-semibold text-neutral-900 truncate">
+                              {notification.title}
+                            </p>
+                            {!notification.read && (
+                              <span className="w-1.5 h-1.5 bg-neutral-900 rounded-full flex-shrink-0" />
+                            )}
                           </div>
 
-                          {/* Enhanced Notification Data Display */}
+                          {/* Message */}
+                          <p className="text-xs text-neutral-500 mt-0.5 leading-relaxed line-clamp-2">
+                            {notification.message}
+                          </p>
+
+                          {/* Inline data pills — replaces old card-within-card */}
                           {notification.data && (
-                            <div className="mt-3 p-3 bg-white/80 rounded-lg border border-neutral-200">
-                              {notification.type === 'order_update' && notification.data.total && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-medium text-neutral-600">Order Value:</span>
-                                  <span className="text-sm font-bold text-green-600">
-                                    KES {notification.data.total.toLocaleString()}
-                                  </span>
-                                </div>
+                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                              {notification.type === 'order_update' && notification.data.total != null && (
+                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
+                                  KES {notification.data.total.toLocaleString()}
+                                </span>
                               )}
-                              {notification.type === 'low_stock' && notification.data.stock !== undefined && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-medium text-neutral-600">Stock Level:</span>
-                                  <span className={`text-sm font-bold ${
-                                    notification.data.stock === 0 ? 'text-red-600' : 'text-yellow-600'
-                                  }`}>
-                                    {notification.data.stock} units
-                                  </span>
-                                </div>
-                              )}
-                              {notification.type === 'analytics_milestone' && notification.data.value && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-medium text-neutral-600">Milestone:</span>
-                                  <span className="text-sm font-bold text-purple-600">
-                                    {notification.data.type === 'large_order' ? 'Large Order' : notification.data.value}
-                                  </span>
-                                </div>
+                              {notification.type === 'low_stock' && notification.data.stock != null && (
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  notification.data.stock === 0
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                  {notification.data.stock === 0 ? 'Out of stock' : `${notification.data.stock} units`}
+                                </span>
                               )}
                               {notification.type === 'new_user' && notification.data.role && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-medium text-neutral-600">Role:</span>
-                                  <span className={`text-sm font-bold px-2 py-1 rounded-full ${
-                                    notification.data.role === 'admin' ? 'bg-red-100 text-red-700' :
-                                    notification.data.role === 'worker' ? 'bg-blue-100 text-blue-700' :
-                                    'bg-green-100 text-green-700'
-                                  }`}>
-                                    {notification.data.role.charAt(0).toUpperCase() + notification.data.role.slice(1)}
-                                  </span>
-                                </div>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${
+                                  notification.data.role === 'admin'
+                                    ? 'bg-violet-100 text-violet-700'
+                                    : notification.data.role === 'worker'
+                                    ? 'bg-sky-100 text-sky-700'
+                                    : 'bg-emerald-100 text-emerald-700'
+                                }`}>
+                                  {notification.data.role}
+                                </span>
+                              )}
+                              {notification.type === 'analytics_milestone' && notification.data.value && (
+                                <span className="px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full text-[10px] font-bold">
+                                  {notification.data.type === 'large_order' ? 'Large Order' : notification.data.value}
+                                </span>
                               )}
                             </div>
                           )}
-                          
-                          <div className="flex items-center justify-between mt-3">
-                            <div className="flex items-center gap-1 text-xs text-neutral-500">
+
+                          {/* Timestamp + mark read */}
+                          <div className="flex items-center justify-between mt-2.5">
+                            <div className="flex items-center gap-1 text-[11px] text-neutral-400">
                               <Clock className="w-3 h-3" />
-                              <span>{formatTimeAgo(notification.timestamp)}</span>
+                              {formatTimeAgo(notification.timestamp)}
                             </div>
-                            
                             {!notification.read && (
                               <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  markAsRead(notification.id);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 text-xs text-primary hover:text-primary-dark font-medium transition-all px-2 py-1 bg-primary/10 rounded-lg hover:bg-primary/20"
+                                onClick={e => { e.stopPropagation(); markAsRead(notification.id); }}
+                                className="opacity-0 group-hover:opacity-100 text-[11px] font-semibold
+                                  text-neutral-500 hover:text-neutral-900 px-2 py-0.5 rounded-md
+                                  hover:bg-black/5 transition-all"
                               >
                                 Mark read
                               </button>
@@ -375,53 +326,54 @@ const RealTimeNotifications: React.FC = () => {
                         </div>
                       </div>
                     </motion.div>
-                  ))}
-                </div>
+                  );
+                })
               ) : (
-                <div className="p-8 text-center text-neutral-500">
-                  <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Bell className="w-8 h-8 text-neutral-300" />
+                /* Empty state */
+                <div className="flex flex-col items-center gap-3 py-14 px-6">
+                  <div className="w-12 h-12 bg-neutral-100 rounded-2xl flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-neutral-400" />
                   </div>
-                  <p className="font-medium text-lg mb-2">
-                    {showUnreadOnly ? 'No unread notifications' : 'No notifications'}
-                  </p>
-                  <p className="text-sm">
-                    {showUnreadOnly 
-                      ? 'All caught up! Check back later for updates.' 
-                      : 'You\'re all caught up! New notifications will appear here.'
-                    }
-                  </p>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-neutral-700">
+                      {showUnreadOnly ? 'No unread notifications' : 'No notifications'}
+                    </p>
+                    <p className="text-xs text-neutral-400 mt-1">
+                      {showUnreadOnly
+                        ? 'All caught up — toggle off to see all'
+                        : 'New notifications will appear here in real time'}
+                    </p>
+                  </div>
+                  {showUnreadOnly && (
+                    <button onClick={() => setShowUnreadOnly(false)}
+                      className="text-xs font-semibold text-neutral-600 hover:text-neutral-900
+                        px-3 py-1.5 border border-neutral-200 hover:border-neutral-300 rounded-lg transition-all">
+                      Show all
+                    </button>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Enhanced Footer */}
+            {/* ── Footer ──────────────────────────────────────────────────── */}
             {notifications.length > 0 && (
-              <div className="p-4 border-t border-neutral-200 bg-gradient-to-r from-neutral-50 to-neutral-100">
-                <div className="flex items-center justify-between text-xs text-neutral-600">
-                  <div className="flex items-center gap-4">
-                    <span>{filteredNotifications.length} of {notifications.length} shown</span>
-                    <div className="flex items-center gap-1">
-                      {isConnected ? (
-                        <>
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="text-green-600 font-medium">Live updates active</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <span className="text-red-600 font-medium">Reconnecting...</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="text-xs text-neutral-500">
-                    Last updated: {new Date().toLocaleTimeString()}
-                  </div>
+              <div className="flex items-center justify-between px-5 py-3 border-t border-neutral-100 bg-neutral-50/50">
+                <p className="text-[11px] text-neutral-400">
+                  <span className="font-semibold text-neutral-600">{filtered.length}</span> of {notifications.length} shown
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'
+                  }`} />
+                  <span className={`text-[11px] font-medium ${
+                    isConnected ? 'text-emerald-600' : 'text-red-500'
+                  }`}>
+                    {isConnected ? 'Live updates' : 'Reconnecting…'}
+                  </span>
                 </div>
               </div>
             )}
+
           </motion.div>
         )}
       </AnimatePresence>
