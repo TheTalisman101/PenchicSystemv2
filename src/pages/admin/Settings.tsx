@@ -42,10 +42,10 @@ interface DisplaySettings {
 }
 interface Toast { message: string; type: 'success' | 'error' }
 
-// ── Defaults (used as fallback when localStorage is empty or missing keys) ─────
+// ── Defaults ───────────────────────────────────────────────────────────────────
 const DEFAULT_PERFORMANCE: PerformanceSettings = {
-  enable_animations: true, lazy_loading: true,    cache_duration: 30,
-  batch_operations: true,  compress_images: true,  prefetch_data: false,
+  enable_animations: true, lazy_loading: true,   cache_duration: 30,
+  batch_operations:  true, compress_images: true, prefetch_data: false,
   virtual_scrolling: true, debounce_search: 300,
 };
 const DEFAULT_DATA: DataSettings = {
@@ -53,7 +53,7 @@ const DEFAULT_DATA: DataSettings = {
   sync_frequency: 5,  backup_retention: 30,
 };
 const DEFAULT_NOTIFICATION: NotificationSettings = {
-  email_notifications: true, push_notifications: true,  low_stock_alerts: true,
+  email_notifications: true, push_notifications: true, low_stock_alerts: true,
   order_notifications: true, system_alerts: true,
 };
 const DEFAULT_DISPLAY: DisplaySettings = {
@@ -61,7 +61,7 @@ const DEFAULT_DISPLAY: DisplaySettings = {
   sidebar_collapsed: false, show_tooltips: true,
 };
 
-// ── Static config (outside component — no re-creation on render) ───────────────
+// ── Static config ──────────────────────────────────────────────────────────────
 const TABS = [
   { id: 'performance',   label: 'Performance',   icon: Monitor      },
   { id: 'data',          label: 'Data & Storage', icon: Database     },
@@ -72,19 +72,17 @@ const TABS = [
 type TabId = typeof TABS[number]['id'];
 
 const NOTIF_META: Record<keyof NotificationSettings, { icon: React.FC<any>; title: string; desc: string }> = {
-  email_notifications: { icon: Mail,         title: 'Email Notifications',  desc: 'Receive notifications via email'             },
-  push_notifications:  { icon: Bell,         title: 'Push Notifications',   desc: 'Receive browser push notifications'          },
-  low_stock_alerts:    { icon: Package,      title: 'Low Stock Alerts',     desc: 'Get alerts when products run low'            },
-  order_notifications: { icon: ShoppingCart, title: 'Order Notifications',  desc: 'Receive notifications for new orders'        },
-  system_alerts:       { icon: Shield,       title: 'System Alerts',        desc: 'Get maintenance and error alerts'            },
+  email_notifications: { icon: Mail,         title: 'Email Notifications', desc: 'Receive notifications via email'          },
+  push_notifications:  { icon: Bell,         title: 'Push Notifications',  desc: 'Receive browser push notifications'       },
+  low_stock_alerts:    { icon: Package,      title: 'Low Stock Alerts',    desc: 'Get alerts when products run low'         },
+  order_notifications: { icon: ShoppingCart, title: 'Order Notifications', desc: 'Receive notifications for new orders'     },
+  system_alerts:       { icon: Shield,       title: 'System Alerts',       desc: 'Get maintenance and error alerts'         },
 };
 
-// ── Reusable UI pieces ─────────────────────────────────────────────────────────
-
-/** Accessible toggle switch — neutral-900 when on */
-const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }> = ({
-  checked, onChange, disabled,
-}) => (
+// ── Reusable primitives ────────────────────────────────────────────────────────
+const Toggle: React.FC<{
+  checked: boolean; onChange: (v: boolean) => void; disabled?: boolean;
+}> = ({ checked, onChange, disabled }) => (
   <button
     type="button" role="switch" aria-checked={checked} disabled={disabled}
     onClick={() => onChange(!checked)}
@@ -99,7 +97,6 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; disab
   </button>
 );
 
-/** Consistent setting row layout */
 const SettingRow: React.FC<{
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
   title: string;
@@ -121,13 +118,14 @@ const SettingRow: React.FC<{
   </div>
 );
 
-/** Number input with unit label and clamped onChange */
 const NumberInput: React.FC<{
   label: string; hint?: string; value: number;
   onChange: (v: number) => void; min?: number; max?: number; unit?: string;
 }> = ({ label, hint, value, onChange, min = 0, max = Infinity, unit }) => (
   <div>
-    <label className="block text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">{label}</label>
+    <label className="block text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+      {label}
+    </label>
     <div className="relative">
       <input
         type="number" value={value} min={min} max={max}
@@ -149,7 +147,6 @@ const NumberInput: React.FC<{
   </div>
 );
 
-/** Skeleton while settings load from localStorage */
 const SettingsSkeleton = () => (
   <div className="animate-pulse space-y-1">
     {Array.from({ length: 5 }).map((_, i) => (
@@ -172,28 +169,26 @@ const Settings = () => {
   const navigate = useNavigate();
   const user     = useStore(s => s.user);
 
-  const [loading,   setLoading]   = useState(true);
-  const [saving,    setSaving]    = useState(false);
-  const [activeTab, setActiveTab] = useState<TabId>('performance');
-  // Tracks which tabs have unsaved changes → amber dot indicator
-  const [dirtyTabs, setDirtyTabs] = useState<Set<string>>(new Set());
-  const [toast,     setToast]     = useState<Toast | null>(null);
-  // Confirmation dialog — useRef avoids the useState-with-function anti-pattern
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [activeTab,   setActiveTab]   = useState<TabId>('performance');
+  const [dirtyTabs,   setDirtyTabs]   = useState<Set<string>>(new Set());
+  const [toast,       setToast]       = useState<Toast | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmMsg,  setConfirmMsg]  = useState('');
   const pendingAction = useRef<(() => void) | null>(null);
 
-  const [performance,    setPerformance]    = useState<PerformanceSettings>(DEFAULT_PERFORMANCE);
-  const [data,           setData]           = useState<DataSettings>(DEFAULT_DATA);
-  const [notifications,  setNotifications]  = useState<NotificationSettings>(DEFAULT_NOTIFICATION);
-  const [display,        setDisplay]        = useState<DisplaySettings>(DEFAULT_DISPLAY);
+  const [performance,   setPerformance]   = useState<PerformanceSettings>(DEFAULT_PERFORMANCE);
+  const [data,          setData]          = useState<DataSettings>(DEFAULT_DATA);
+  const [notifications, setNotifications] = useState<NotificationSettings>(DEFAULT_NOTIFICATION);
+  const [display,       setDisplay]       = useState<DisplaySettings>(DEFAULT_DISPLAY);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') { navigate('/'); return; }
     loadSettings();
   }, [user, navigate]);
 
-  // ── Toast ─────────────────────────────────────────────────────────────────
+  // ── Toast ──────────────────────────────────────────────────────────────────
   const showToast = (message: string, type: Toast['type']) => {
     setToast({ message, type });
     setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
@@ -223,14 +218,14 @@ const Settings = () => {
         return raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
       } catch { return defaults; }
     };
-    setPerformance(load('performance_settings',   DEFAULT_PERFORMANCE));
-    setData(        load('data_settings',          DEFAULT_DATA));
-    setNotifications(load('notification_settings', DEFAULT_NOTIFICATION));
-    setDisplay(     load('display_settings',       DEFAULT_DISPLAY));
+    setPerformance(  load('performance_settings',   DEFAULT_PERFORMANCE));
+    setData(         load('data_settings',           DEFAULT_DATA));
+    setNotifications(load('notification_settings',   DEFAULT_NOTIFICATION));
+    setDisplay(      load('display_settings',        DEFAULT_DISPLAY));
     setLoading(false);
   };
 
-  // ── Generic save — 250 ms delay gives visual feedback for sync localStorage ─
+  // ── Generic save ───────────────────────────────────────────────────────────
   const save = async (key: string, value: object, tab: string, sideEffect?: () => void) => {
     setSaving(true);
     try {
@@ -246,10 +241,9 @@ const Settings = () => {
     }
   };
 
-  // ── Per-tab save functions — each applies its DOM side effect ──────────────
+  // ── Per-tab saves with DOM side effects ────────────────────────────────────
   const savePerformance = () =>
     save('performance_settings', performance, 'performance', () => {
-      // Apply animations toggle immediately to the document
       if (performance.enable_animations) {
         document.documentElement.style.removeProperty('--animation-duration');
       } else {
@@ -257,20 +251,17 @@ const Settings = () => {
       }
     });
 
-  const saveData          = () => save('data_settings',          data,          'data');
-  const saveNotifications = () => save('notification_settings',  notifications, 'notifications');
+  const saveData          = () => save('data_settings',         data,          'data');
+  const saveNotifications = () => save('notification_settings', notifications, 'notifications');
 
   const saveDisplay = () =>
     save('display_settings', display, 'display', () => {
-      // Apply font size immediately to the root element
       document.documentElement.style.fontSize =
         display.font_size === 'small' ? '14px' :
         display.font_size === 'large' ? '18px' : '16px';
     });
 
-  // ── System actions (all real) ──────────────────────────────────────────────
-
-  /** Remove all four localStorage keys, reload state to defaults */
+  // ── System actions ─────────────────────────────────────────────────────────
   const clearCache = () => {
     ['performance_settings', 'data_settings', 'notification_settings', 'display_settings']
       .forEach(k => localStorage.removeItem(k));
@@ -278,21 +269,19 @@ const Settings = () => {
     showToast('Cache cleared — settings restored to defaults', 'success');
   };
 
-  /** Hard reload the application */
   const refreshSystem = () => window.location.reload();
 
-  /** Download all current settings as a JSON file */
   const exportSettings = () => {
     const blob = new Blob([JSON.stringify({
-      performance_settings:   performance,
-      data_settings:          data,
-      notification_settings:  notifications,
-      display_settings:       display,
-      exported_at: new Date().toISOString(),
+      performance_settings:  performance,
+      data_settings:         data,
+      notification_settings: notifications,
+      display_settings:      display,
+      exported_at:           new Date().toISOString(),
     }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');
-    a.href = url;
+    a.href     = url;
     a.download = `admin-settings-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
@@ -301,7 +290,6 @@ const Settings = () => {
     showToast('Settings exported successfully', 'success');
   };
 
-  /** Reset all settings and undo DOM effects */
   const resetDefaults = () => {
     setPerformance(DEFAULT_PERFORMANCE);
     setData(DEFAULT_DATA);
@@ -315,7 +303,6 @@ const Settings = () => {
     showToast('All settings reset to factory defaults', 'success');
   };
 
-  // Save function map for the header button
   const SAVE_FN: Partial<Record<TabId, () => void>> = {
     performance:   savePerformance,
     data:          saveData,
@@ -330,7 +317,8 @@ const Settings = () => {
 
         {/* ── Tab navigation ────────────────────────────────────────────────── */}
         <div className="lg:w-52 flex-shrink-0">
-          {/* Mobile: horizontal scrollable pills */}
+
+          {/* Mobile pills */}
           <div className="flex lg:hidden overflow-x-auto gap-1.5 pb-1">
             {TABS.map(tab => {
               const active = activeTab === tab.id;
@@ -342,15 +330,13 @@ const Settings = () => {
                   }`}>
                   <tab.icon className="w-3.5 h-3.5" />
                   {tab.label}
-                  {dirty && (
-                    <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${active ? 'bg-white/60' : 'bg-amber-400'}`} />
-                  )}
+                  {dirty && <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${active ? 'bg-white/60' : 'bg-amber-400'}`} />}
                 </button>
               );
             })}
           </div>
 
-          {/* Desktop: vertical sidebar */}
+          {/* Desktop sidebar */}
           <nav className="hidden lg:block bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
             {TABS.map(tab => {
               const active = activeTab === tab.id;
@@ -364,9 +350,7 @@ const Settings = () => {
                     <tab.icon className="w-4 h-4 flex-shrink-0" />
                     {tab.label}
                   </div>
-                  {dirty && (
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${active ? 'bg-white/60' : 'bg-amber-400'}`} />
-                  )}
+                  {dirty && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${active ? 'bg-white/60' : 'bg-amber-400'}`} />}
                 </button>
               );
             })}
@@ -376,7 +360,7 @@ const Settings = () => {
         {/* ── Content panel ─────────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0 bg-white rounded-xl border border-neutral-200 shadow-sm">
 
-          {/* Section header with Save button */}
+          {/* Section header */}
           {activeTab !== 'system' && (
             <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
               <div>
@@ -403,9 +387,7 @@ const Settings = () => {
           )}
 
           <div className="p-6">
-            {loading ? (
-              <SettingsSkeleton />
-            ) : (
+            {loading ? <SettingsSkeleton /> : (
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -419,28 +401,32 @@ const Settings = () => {
                   {activeTab === 'performance' && (
                     <div>
                       {([
-                        { key: 'enable_animations', icon: Monitor,   title: 'Enable Animations',  desc: 'Smooth transitions and micro-interactions'        },
-                        { key: 'lazy_loading',       icon: Database,  title: 'Lazy Loading',       desc: 'Load images and data only when visible'           },
-                        { key: 'batch_operations',   icon: Shield,    title: 'Batch Operations',   desc: 'Group database operations for efficiency'         },
-                        { key: 'compress_images',    icon: HardDrive, title: 'Compress Images',    desc: 'Automatically compress images on upload'          },
-                        { key: 'prefetch_data',      icon: Wifi,      title: 'Prefetch Data',      desc: 'Preload data likely to be requested next'         },
-                        { key: 'virtual_scrolling',  icon: Type,      title: 'Virtual Scrolling',  desc: 'Optimise rendering of long lists and tables'      },
-                      ] as { key: keyof PerformanceSettings; icon: React.FC<any>; title: string; desc: string }[]).map(({ key, icon, title, desc }, i, arr) => (
-                        <SettingRow key={key} icon={icon} title={title} description={desc} noBorder={i === arr.length - 1}>
-                          <Toggle
-                            checked={performance[key] as boolean}
-                            onChange={v => { setPerformance(p => ({ ...p, [key]: v })); markDirty('performance'); }}
-                          />
-                        </SettingRow>
-                      ))}
+                        { key: 'enable_animations', icon: Monitor,   title: 'Enable Animations', desc: 'Smooth transitions and micro-interactions'   },
+                        { key: 'lazy_loading',       icon: Database,  title: 'Lazy Loading',      desc: 'Load images and data only when visible'      },
+                        { key: 'batch_operations',   icon: Shield,    title: 'Batch Operations',  desc: 'Group database operations for efficiency'    },
+                        { key: 'compress_images',    icon: HardDrive, title: 'Compress Images',   desc: 'Automatically compress images on upload'     },
+                        { key: 'prefetch_data',      icon: Wifi,      title: 'Prefetch Data',     desc: 'Preload data likely to be requested next'    },
+                        { key: 'virtual_scrolling',  icon: Type,      title: 'Virtual Scrolling', desc: 'Optimise rendering of long lists and tables' },
+                      ] as { key: keyof PerformanceSettings; icon: React.FC<any>; title: string; desc: string }[])
+                        .map(({ key, icon, title, desc }, i, arr) => (
+                          <SettingRow key={key} icon={icon} title={title} description={desc} noBorder={i === arr.length - 1}>
+                            <Toggle
+                              checked={performance[key] as boolean}
+                              onChange={v => { setPerformance(p => ({ ...p, [key]: v })); markDirty('performance'); }}
+                            />
+                          </SettingRow>
+                        ))
+                      }
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-5 mt-2 border-t border-neutral-100">
                         <NumberInput
-                          label="Cache Duration" unit="min" value={performance.cache_duration} min={1} max={1440}
+                          label="Cache Duration" unit="min"
+                          value={performance.cache_duration} min={1} max={1440}
                           hint="How long to cache data locally (1–1440 min)"
                           onChange={v => { setPerformance(p => ({ ...p, cache_duration: v })); markDirty('performance'); }}
                         />
                         <NumberInput
-                          label="Search Debounce" unit="ms" value={performance.debounce_search} min={100} max={2000}
+                          label="Search Debounce" unit="ms"
+                          value={performance.debounce_search} min={100} max={2000}
                           hint="Delay before search query fires (100–2000 ms)"
                           onChange={v => { setPerformance(p => ({ ...p, debounce_search: v })); markDirty('performance'); }}
                         />
@@ -466,17 +452,20 @@ const Settings = () => {
                           <p className="text-[11px] text-neutral-400 mt-1">Fewer items = faster table loading</p>
                         </div>
                         <NumberInput
-                          label="Auto-save Interval" unit="sec" value={data.auto_save_interval} min={10} max={300}
+                          label="Auto-save Interval" unit="sec"
+                          value={data.auto_save_interval} min={10} max={300}
                           hint="How often unsaved drafts are auto-saved"
                           onChange={v => { setData(p => ({ ...p, auto_save_interval: v })); markDirty('data'); }}
                         />
                         <NumberInput
-                          label="Sync Frequency" unit="min" value={data.sync_frequency} min={1} max={60}
+                          label="Sync Frequency" unit="min"
+                          value={data.sync_frequency} min={1} max={60}
                           hint="How often to sync data with the server"
                           onChange={v => { setData(p => ({ ...p, sync_frequency: v })); markDirty('data'); }}
                         />
                         <NumberInput
-                          label="Backup Retention" unit="days" value={data.backup_retention} min={7} max={365}
+                          label="Backup Retention" unit="days"
+                          value={data.backup_retention} min={7} max={365}
                           hint="How long backup snapshots are kept"
                           onChange={v => { setData(p => ({ ...p, backup_retention: v })); markDirty('data'); }}
                         />
@@ -495,31 +484,32 @@ const Settings = () => {
                   {/* ── Notifications ─────────────────────────────────────── */}
                   {activeTab === 'notifications' && (
                     <div>
-                      {(Object.keys(DEFAULT_NOTIFICATION) as (keyof NotificationSettings)[]).map((key, i, arr) => {
-                        const { icon, title, desc } = NOTIF_META[key];
-                        return (
-                          <SettingRow key={key} icon={icon} title={title} description={desc} noBorder={i === arr.length - 1}>
-                            <Toggle
-                              checked={notifications[key]}
-                              onChange={v => { setNotifications(p => ({ ...p, [key]: v })); markDirty('notifications'); }}
-                            />
-                          </SettingRow>
-                        );
-                      })}
+                      {(Object.keys(DEFAULT_NOTIFICATION) as (keyof NotificationSettings)[])
+                        .map((key, i, arr) => {
+                          const { icon, title, desc } = NOTIF_META[key];
+                          return (
+                            <SettingRow key={key} icon={icon} title={title} description={desc} noBorder={i === arr.length - 1}>
+                              <Toggle
+                                checked={notifications[key]}
+                                onChange={v => { setNotifications(p => ({ ...p, [key]: v })); markDirty('notifications'); }}
+                              />
+                            </SettingRow>
+                          );
+                        })
+                      }
                     </div>
                   )}
 
                   {/* ── Display ───────────────────────────────────────────── */}
                   {activeTab === 'display' && (
                     <div className="space-y-6">
-                      {/* Font size */}
                       <div>
                         <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-2">Font Size</p>
                         <div className="grid grid-cols-3 gap-2">
                           {([
-                            { value: 'small',  label: 'Small',  sample: 'text-xs'   },
-                            { value: 'medium', label: 'Medium', sample: 'text-sm'   },
-                            { value: 'large',  label: 'Large',  sample: 'text-base' },
+                            { value: 'small',  label: 'Small',  cls: 'text-xs'   },
+                            { value: 'medium', label: 'Medium', cls: 'text-sm'   },
+                            { value: 'large',  label: 'Large',  cls: 'text-base' },
                           ] as const).map(opt => (
                             <button key={opt.value}
                               onClick={() => { setDisplay(p => ({ ...p, font_size: opt.value })); markDirty('display'); }}
@@ -529,14 +519,13 @@ const Settings = () => {
                                   : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
                               }`}>
                               <Type className="w-4 h-4" />
-                              <span className={opt.sample}>{opt.label}</span>
+                              <span className={opt.cls}>{opt.label}</span>
                             </button>
                           ))}
                         </div>
                         <p className="text-[11px] text-neutral-400 mt-1.5">Applied to the entire admin interface on save</p>
                       </div>
 
-                      {/* Layout spacing */}
                       <div>
                         <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-2">Layout Spacing</p>
                         <div className="grid grid-cols-3 gap-2">
@@ -561,8 +550,7 @@ const Settings = () => {
                         </div>
                       </div>
 
-                      {/* Toggle options */}
-                      <div className="border-t border-neutral-100 pt-2 space-y-0">
+                      <div className="border-t border-neutral-100 pt-2">
                         <SettingRow icon={Layout} title="Collapse Sidebar by Default" description="Start the admin panel with the sidebar collapsed">
                           <Toggle
                             checked={display.sidebar_collapsed}
@@ -585,12 +573,12 @@ const Settings = () => {
                       <div>
                         <h3 className="text-sm font-semibold text-neutral-900 mb-4">System Status</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {[
-                            { icon: Database,  label: 'Database',      value: 'Connected',     ok: true  },
-                            { icon: Wifi,      label: 'Real-time',     value: 'Active',        ok: true  },
-                            { icon: HardDrive, label: 'Storage',       value: '2.4 MB / 1 GB', ok: null  },
-                            { icon: Shield,    label: 'Security',      value: 'Secure',        ok: true  },
-                          ].map(({ icon: Icon, label, value, ok }) => (
+                          {([
+                            { icon: Database,  label: 'Database',    value: 'Connected',     ok: true  },
+                            { icon: Wifi,      label: 'Real-time',   value: 'Active',        ok: true  },
+                            { icon: HardDrive, label: 'Storage',     value: '2.4 MB / 1 GB', ok: null  },
+                            { icon: Shield,    label: 'Security',    value: 'Secure',        ok: true  },
+                          ] as const).map(({ icon: Icon, label, value, ok }) => (
                             <div key={label} className="flex items-center justify-between p-4 bg-neutral-50 rounded-xl border border-neutral-200">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 bg-white rounded-lg border border-neutral-200 flex items-center justify-center">
@@ -600,7 +588,7 @@ const Settings = () => {
                               </div>
                               <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${
                                 ok === true  ? 'bg-emerald-100 text-emerald-700' :
-                                ok === false ? 'bg-red-100 text-red-700' :
+                                ok === false ? 'bg-red-100 text-red-700'         :
                                                'bg-neutral-100 text-neutral-600'
                               }`}>{value}</span>
                             </div>
@@ -611,61 +599,45 @@ const Settings = () => {
                       <div className="border-t border-neutral-100 pt-5">
                         <h3 className="text-sm font-semibold text-neutral-900 mb-4">System Actions</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* Clear Cache */}
-                          <button
-                            onClick={() => openConfirm('Remove all cached settings and reload defaults from localStorage?', clearCache)}
-                            className="flex items-center gap-3 p-4 bg-neutral-50 hover:bg-neutral-100 rounded-xl border border-neutral-200 hover:border-neutral-300 transition-all text-left group"
-                          >
-                            <div className="w-8 h-8 bg-white rounded-lg border border-neutral-200 flex items-center justify-center group-hover:border-neutral-300 transition-colors flex-shrink-0">
-                              <Database className="w-4 h-4 text-neutral-500" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-neutral-900">Clear Cache</p>
-                              <p className="text-xs text-neutral-400 mt-0.5">Reset settings to defaults</p>
-                            </div>
-                          </button>
-
-                          {/* Export Settings */}
-                          <button
-                            onClick={exportSettings}
-                            className="flex items-center gap-3 p-4 bg-neutral-50 hover:bg-neutral-100 rounded-xl border border-neutral-200 hover:border-neutral-300 transition-all text-left group"
-                          >
-                            <div className="w-8 h-8 bg-white rounded-lg border border-neutral-200 flex items-center justify-center group-hover:border-neutral-300 transition-colors flex-shrink-0">
-                              <Download className="w-4 h-4 text-neutral-500" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-neutral-900">Export Settings</p>
-                              <p className="text-xs text-neutral-400 mt-0.5">Download as JSON file</p>
-                            </div>
-                          </button>
-
-                          {/* Refresh System */}
-                          <button
-                            onClick={() => openConfirm('Reload the application? Unsaved changes will be lost.', refreshSystem)}
-                            className="flex items-center gap-3 p-4 bg-neutral-50 hover:bg-neutral-100 rounded-xl border border-neutral-200 hover:border-neutral-300 transition-all text-left group"
-                          >
-                            <div className="w-8 h-8 bg-white rounded-lg border border-neutral-200 flex items-center justify-center group-hover:border-neutral-300 transition-colors flex-shrink-0">
-                              <RefreshCw className="w-4 h-4 text-neutral-500" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-neutral-900">Refresh System</p>
-                              <p className="text-xs text-neutral-400 mt-0.5">Hard reload the application</p>
-                            </div>
-                          </button>
-
-                          {/* Reset to Defaults */}
-                          <button
-                            onClick={() => openConfirm('Reset ALL settings to factory defaults? This removes all saved preferences and cannot be undone.', resetDefaults)}
-                            className="flex items-center gap-3 p-4 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 hover:border-red-300 transition-all text-left group"
-                          >
-                            <div className="w-8 h-8 bg-white rounded-lg border border-red-200 flex items-center justify-center group-hover:border-red-300 transition-colors flex-shrink-0">
-                              <RotateCcw className="w-4 h-4 text-red-500" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-red-700">Reset to Defaults</p>
-                              <p className="text-xs text-red-400 mt-0.5">Clear all saved preferences</p>
-                            </div>
-                          </button>
+                          {([
+                            {
+                              icon: Database, label: 'Clear Cache', hint: 'Reset settings to defaults',
+                              danger: false,
+                              onClick: () => openConfirm('Remove all cached settings and reload defaults?', clearCache),
+                            },
+                            {
+                              icon: Download, label: 'Export Settings', hint: 'Download as JSON file',
+                              danger: false,
+                              onClick: exportSettings,
+                            },
+                            {
+                              icon: RefreshCw, label: 'Refresh System', hint: 'Hard reload the application',
+                              danger: false,
+                              onClick: () => openConfirm('Reload the application? Unsaved changes will be lost.', refreshSystem),
+                            },
+                            {
+                              icon: RotateCcw, label: 'Reset to Defaults', hint: 'Clear all saved preferences',
+                              danger: true,
+                              onClick: () => openConfirm('Reset ALL settings to factory defaults? This cannot be undone.', resetDefaults),
+                            },
+                          ]).map(({ icon: Icon, label, hint, danger, onClick }) => (
+                            <button key={label} onClick={onClick}
+                              className={`flex items-center gap-3 p-4 rounded-xl border text-left group transition-all ${
+                                danger
+                                  ? 'bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300'
+                                  : 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200 hover:border-neutral-300'
+                              }`}>
+                              <div className={`w-8 h-8 bg-white rounded-lg border flex items-center justify-center flex-shrink-0 transition-colors ${
+                                danger ? 'border-red-200 group-hover:border-red-300' : 'border-neutral-200 group-hover:border-neutral-300'
+                              }`}>
+                                <Icon className={`w-4 h-4 ${danger ? 'text-red-500' : 'text-neutral-500'}`} />
+                              </div>
+                              <div>
+                                <p className={`text-sm font-medium ${danger ? 'text-red-700' : 'text-neutral-900'}`}>{label}</p>
+                                <p className={`text-xs mt-0.5 ${danger ? 'text-red-400' : 'text-neutral-400'}`}>{hint}</p>
+                              </div>
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -697,13 +669,14 @@ const Settings = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => { setShowConfirm(false); pendingAction.current = null; }}
-                  className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text
-                                    className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors">
+                  className="flex-1 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-xl transition-colors"
+                >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="flex-1 px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors">
+                  className="flex-1 px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors"
+                >
                   Confirm
                 </button>
               </div>
