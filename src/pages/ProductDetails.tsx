@@ -117,7 +117,7 @@ const ProductDetails = () => {
   };
 
   const openGoogleMaps = () => {
-    window.open('https://maps.google.com/?q=-1.1166,36.6333', '_blank');
+    window.open('https://maps.google.com/?q=-0.303099,36.080025', '_blank');
   };
 
   const getStockDisplay = (stock: number) => {
@@ -156,17 +156,6 @@ const ProductDetails = () => {
   return (
     <div className="min-h-screen bg-neutral-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Error Message */}
-        {error && (
-          <div className={`mb-6 p-4 rounded-lg border ${
-            error.includes('successfully') 
-              ? 'bg-green-50 text-green-800 border-green-200' 
-              : 'bg-red-50 text-red-800 border-red-200'
-          }`}>
-            {error}
-          </div>
-        )}
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           <div className="relative aspect-square">
             <img
