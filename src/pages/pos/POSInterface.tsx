@@ -14,7 +14,7 @@ import { Product, CartItem } from '../../types';
 
 // ── CartItemRow ────────────────────────────────────────────────────────────────
 interface CartItemRowProps {
-  item: CartItem;
+  item:        CartItem;
   onRemove:    (pid: string, vid?: string) => void;
   onUpdateQty: (pid: string, vid: string | undefined, delta: number) => void;
   onSetQty:    (pid: string, vid: string | undefined, qty: number) => void;
@@ -34,6 +34,7 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
 
   return (
     <div className="bg-neutral-50 rounded-xl p-2.5 border border-neutral-100">
+      {/* Name row */}
       <div className="flex justify-between items-start mb-1.5 gap-2">
         <h3 className="font-medium text-neutral-900 text-xs leading-snug flex-1">
           {item.product.name}
@@ -50,16 +51,20 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
         </button>
       </div>
 
+      {/* Stepper row */}
       <div className="flex items-center justify-between gap-2">
-        {/* Stepper + manual input */}
-        <div className="flex items-center border border-neutral-200 rounded-lg overflow-hidden bg-white
-          focus-within:border-green-400 focus-within:ring-1 focus-within:ring-green-400/20 transition-all">
+        <div className="inline-flex items-center h-8 border border-neutral-200 rounded-lg
+          overflow-hidden bg-white flex-shrink-0
+          focus-within:border-green-400 focus-within:ring-1 focus-within:ring-green-400/20
+          transition-all">
+
           <button
             onClick={() => onUpdateQty(item.product.id, item.variant?.id, -1)}
             disabled={item.quantity <= 1}
-            className="w-7 h-7 flex items-center justify-center text-neutral-400
-              hover:bg-neutral-100 hover:text-neutral-700 active:bg-neutral-200
-              transition-colors touch-manipulation disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-8 h-8 flex items-center justify-center border-r border-neutral-200
+              text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800
+              active:bg-neutral-200 transition-colors touch-manipulation
+              disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
           >
             <Minus className="w-3 h-3" />
           </button>
@@ -71,14 +76,18 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
             max={item.product.stock}
             value={draft}
             onChange={e => setDraft(e.target.value)}
-            onBlur={e  => commit(e.target.value)}
+            onFocus={e  => e.target.select()}
+            onBlur={e   => commit(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter')  (e.target as HTMLInputElement).blur();
-              if (e.key === 'Escape') { setDraft(String(item.quantity)); (e.target as HTMLInputElement).blur(); }
+              if (e.key === 'Escape') {
+                setDraft(String(item.quantity));
+                (e.target as HTMLInputElement).blur();
+              }
             }}
             onWheel={e => (e.target as HTMLInputElement).blur()}
-            className="w-9 h-7 text-center text-xs font-bold text-neutral-900 bg-transparent
-              border-none outline-none tabular-nums
+            className="w-10 h-8 text-center text-sm font-bold text-neutral-900
+              bg-transparent border-none outline-none tabular-nums leading-none
               [appearance:textfield]
               [&::-webkit-outer-spin-button]:appearance-none
               [&::-webkit-inner-spin-button]:appearance-none"
@@ -87,9 +96,10 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
           <button
             onClick={() => onUpdateQty(item.product.id, item.variant?.id, 1)}
             disabled={item.quantity >= item.product.stock}
-            className="w-7 h-7 flex items-center justify-center text-neutral-400
-              hover:bg-neutral-100 hover:text-neutral-700 active:bg-neutral-200
-              transition-colors touch-manipulation disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-8 h-8 flex items-center justify-center border-l border-neutral-200
+              text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800
+              active:bg-neutral-200 transition-colors touch-manipulation
+              disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
           >
             <Plus className="w-3 h-3" />
           </button>
@@ -112,7 +122,7 @@ CartItemRow.displayName = 'CartItemRow';
 
 // ── CartPanel ──────────────────────────────────────────────────────────────────
 interface CartPanelProps {
-  cart: CartItem[];
+  cart:              CartItem[];
   onClose:           () => void;
   onClearCart:       () => void;
   onRemoveFromCart:  (productId: string, variantId?: string) => void;
@@ -273,7 +283,6 @@ const POSInterface = () => {
     if (!user || !['admin', 'worker'].includes(user.role)) navigate('/');
   }, [user, navigate]);
 
-  // ── Data ─────────────────────────────────────────────────────────────────────
   useEffect(() => { fetchProducts(); }, []);
 
   useEffect(() => {
@@ -282,6 +291,7 @@ const POSInterface = () => {
     return () => document.removeEventListener('fullscreenchange', h);
   }, []);
 
+  // ── Data ─────────────────────────────────────────────────────────────────────
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
@@ -309,13 +319,18 @@ const POSInterface = () => {
     setAddBump(n => n + 1); // bump FAB only — do NOT open drawer
   }, [cart, addToCart]);
 
-  const handleRemoveFromCart  = useCallback((pid: string, vid?: string) => removeFromCart(pid, vid), [removeFromCart]);
-  const handleUpdateQuantity  = useCallback((pid: string, vid: string | undefined, delta: number) => updateCartQuantity(pid, vid, delta), [updateCartQuantity]);
-  const handleSetQuantity     = useCallback((pid: string, vid: string | undefined, qty: number) => {
+  const handleRemoveFromCart  = useCallback((pid: string, vid?: string) =>
+    removeFromCart(pid, vid), [removeFromCart]);
+
+  const handleUpdateQuantity  = useCallback((pid: string, vid: string | undefined, delta: number) =>
+    updateCartQuantity(pid, vid, delta), [updateCartQuantity]);
+
+  const handleSetQuantity = useCallback((pid: string, vid: string | undefined, qty: number) => {
     const existing = cart.find(i => i.product.id === pid && i.variant?.id === vid);
     const delta    = qty - (existing?.quantity ?? 0);
     if (delta !== 0) updateCartQuantity(pid, vid, delta);
   }, [cart, updateCartQuantity]);
+
   const handleClearCart       = useCallback(() => clearCart(), [clearCart]);
   const handleOpenCheckout    = useCallback(() => setShowCheckout(true), []);
   const handleCloseMobileCart = useCallback(() => setShowMobileCart(false), []);
@@ -540,9 +555,9 @@ const POSInterface = () => {
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
                 className="px-2.5 py-2 bg-neutral-50 border border-neutral-200 rounded-xl
-                  text-xs sm:text-sm text-neutral-700
-                  focus:outline-none focus:ring-2 focus:ring-green-600/[0.12]
-                  focus:border-green-400 transition-all min-w-0 max-w-[100px] sm:max-w-[120px]"
+                  text-xs sm:text-sm text-neutral-700 focus:outline-none focus:ring-2
+                  focus:ring-green-600/[0.12] focus:border-green-400 transition-all
+                  min-w-0 max-w-[100px] sm:max-w-[120px]"
               >
                 {categories.map(c => (
                   <option key={c} value={c}>
@@ -573,23 +588,17 @@ const POSInterface = () => {
                       className={`bg-white rounded-xl border text-left relative
                         hover:border-green-300 hover:shadow-sm active:bg-neutral-50
                         transition-all touch-manipulation p-2 sm:p-2.5 lg:p-3
-                        ${inCart
-                          ? 'border-green-300 ring-1 ring-green-300/50'
-                          : 'border-neutral-200'
-                        }`}
+                        ${inCart ? 'border-green-300 ring-1 ring-green-300/50' : 'border-neutral-200'}`}
                     >
-                      {/* Discount badge */}
                       {hasDiscount && (
                         <div className="absolute top-1.5 right-1.5 z-10 bg-red-500 text-white
                           px-1 py-0.5 rounded text-[9px] sm:text-[10px] font-bold leading-none">
                           -{product.discount.percentage}%
                         </div>
                       )}
-                      {/* In-cart qty badge */}
                       {inCart && (
                         <div className="absolute top-1.5 left-1.5 z-10 bg-green-600 text-white
-                          w-4 h-4 rounded-full flex items-center justify-center
-                          text-[9px] font-bold">
+                          w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold">
                           {inCart.quantity}
                         </div>
                       )}
@@ -636,16 +645,16 @@ const POSInterface = () => {
           </div>
         </div>
 
-        {/* ── Desktop cart ────────────────────────────────────────────────── */}
+        {/* ── Desktop cart sidebar ─────────────────────────────────────────── */}
         <div className="hidden lg:block w-72 xl:w-80 border-l border-neutral-200 flex-shrink-0">
           <CartPanel {...cartPanelProps} />
         </div>
       </div>
 
       {/*
-        ── Floating cart button — mobile only ────────────────────────────────
+        ── Floating cart button — mobile only ──────────────────────────────────
         Always visible when cart has items.
-        Product tap triggers bump animation only — does NOT open the drawer.
+        Product tap bumps FAB animation only — does NOT open the drawer.
       */}
       <AnimatePresence>
         {cart.length > 0 && (
@@ -662,7 +671,6 @@ const POSInterface = () => {
               right:  '1rem',
             }}
           >
-            {/* Inner div re-mounts on each add → spring bump */}
             <motion.div
               key={addBump}
               initial={addBump > 0 ? { scale: 1.22 } : { scale: 1 }}
@@ -795,7 +803,7 @@ const POSInterface = () => {
                   </div>
                 </div>
 
-                {/* Cash inputs */}
+                {/* Cash */}
                 <AnimatePresence>
                   {paymentMethod === 'cash' && (
                     <motion.div
