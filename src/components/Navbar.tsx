@@ -32,15 +32,13 @@ const Navbar = () => {
   const roleLabel = isAdmin ? 'Admin' : user?.role === 'worker' ? 'Worker' : 'Customer';
   const roleDot   = isAdmin ? '#fbbf24' : user?.role === 'worker' ? '#74c69d' : '#a0b8aa';
 
-  /* ── Scroll listener ──────────────────────────────────────────── */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
-    onScroll(); // set initial state
+    onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* ── Close dropdown on outside click ─────────────────────────── */
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
@@ -50,7 +48,6 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  /* ── Close on route change ────────────────────────────────────── */
   useEffect(() => {
     setMenuOpen(false);
     setDropdownOpen(false);
@@ -71,42 +68,30 @@ const Navbar = () => {
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
 
-        /* ── Root ── */
+        /* ── Root — solid green at top ── */
         .nb {
           position: fixed; top: 0; left: 0; right: 0; z-index: 50;
           font-family: 'DM Sans', sans-serif;
-
-          /* Transparent by default */
-          background: transparent;
-          border-bottom: 1px solid transparent;
-
-          /* Smooth transition for all visual properties */
+          background: #0a1f16;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          box-shadow: none;
           transition:
-            background  .35s cubic-bezier(0.16,1,0.3,1),
-            border-color .35s cubic-bezier(0.16,1,0.3,1),
-            box-shadow  .35s cubic-bezier(0.16,1,0.3,1),
-            backdrop-filter .35s ease;
+            background     .4s cubic-bezier(0.16,1,0.3,1),
+            border-color   .4s cubic-bezier(0.16,1,0.3,1),
+            box-shadow     .4s cubic-bezier(0.16,1,0.3,1),
+            backdrop-filter .4s ease;
         }
 
-        /* Scrolled state — solid + blur */
+        /* Scrolled — glassy transparent green */
         .nb.scrolled {
-          background: rgba(10, 31, 22, 0.96);
-          border-bottom-color: rgba(255,255,255,0.07);
-          box-shadow: 0 4px 32px rgba(0,0,0,0.45);
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
+          background: rgba(10, 31, 22, 0.35);
+          border-bottom-color: rgba(116,198,157,0.1);
+          box-shadow: 0 4px 40px rgba(0,0,0,0.25);
+          backdrop-filter: blur(24px) saturate(1.6);
+          -webkit-backdrop-filter: blur(24px) saturate(1.6);
         }
 
-        /* Mobile menu matches scroll state */
-        .nb-mobile {
-          background: rgba(10,31,22,0.97);
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
-          border-top: 1px solid rgba(255,255,255,0.06);
-          overflow: hidden;
-        }
-
-        /* ── Spacer so page content starts below the fixed bar ── */
+        /* Spacer for fixed positioning */
         .nb-spacer { height: 62px; }
 
         /* ── Inner bar ── */
@@ -161,11 +146,11 @@ const Navbar = () => {
         }
         .nb-link:hover {
           color: #fff;
-          background: rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.1);
         }
         .nb-link.active {
           color: #74c69d;
-          background: rgba(116,198,157,0.12);
+          background: rgba(116,198,157,0.13);
           border-color: rgba(116,198,157,0.15);
           font-weight: 600;
         }
@@ -175,7 +160,7 @@ const Navbar = () => {
           font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 5px;
           letter-spacing: 0.8px; text-transform: uppercase; line-height: 1.4;
         }
-        .nb-pill-admin  { background: rgba(251,191,36,0.15); color: #fbbf24; }
+        .nb-pill-admin  { background: rgba(251,191,36,0.15);  color: #fbbf24; }
         .nb-pill-worker { background: rgba(116,198,157,0.15); color: #74c69d; }
 
         /* ── Desktop right actions ── */
@@ -207,11 +192,8 @@ const Navbar = () => {
           background: #52b788; color: #0a1f16;
           font-size: 10px; font-weight: 800;
           display: flex; align-items: center; justify-content: center;
-          padding: 0 4px; border: 2px solid transparent;
-          transition: border-color .35s ease;
+          padding: 0 4px; border: 2px solid #0a1f16;
         }
-        /* Badge border matches navbar bg on scroll */
-        .nb.scrolled .nb-cart-badge { border-color: rgba(10,31,22,0.96); }
 
         /* User button */
         .nb-user-btn {
@@ -228,7 +210,7 @@ const Navbar = () => {
         }
         .nb-user-btn.open {
           border-color: rgba(116,198,157,0.35);
-          background: rgba(116,198,157,0.08);
+          background: rgba(116,198,157,0.1);
         }
 
         .nb-avatar {
@@ -322,6 +304,13 @@ const Navbar = () => {
         @media (min-width: 768px) { .nb-ham { display: none; } }
 
         /* ── Mobile menu ── */
+        .nb-mobile {
+          background: rgba(10, 31, 22, 0.7);
+          backdrop-filter: blur(24px) saturate(1.6);
+          -webkit-backdrop-filter: blur(24px) saturate(1.6);
+          border-top: 1px solid rgba(116,198,157,0.1);
+          overflow: hidden;
+        }
         .nb-mobile-inner { padding: 10px 14px 18px; display: flex; flex-direction: column; gap: 2px; }
 
         .nm-link {
@@ -330,7 +319,7 @@ const Navbar = () => {
           font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.6);
           text-decoration: none; transition: all .15s ease; border: 1px solid transparent;
         }
-        .nm-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.06); }
+        .nm-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.07); }
         .nm-link.active { color: #74c69d; background: rgba(116,198,157,0.09); border-color: rgba(116,198,157,0.13); font-weight: 600; }
         .nm-link-right { margin-left: auto; }
 
@@ -339,7 +328,7 @@ const Navbar = () => {
         .nm-user-card {
           display: flex; align-items: center; gap: 12px;
           padding: 12px 14px; border-radius: 12px;
-          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
           margin-bottom: 6px;
         }
         .nm-avatar {
@@ -370,7 +359,6 @@ const Navbar = () => {
         }
       `}</style>
 
-      {/* Spacer keeps page layout correct since navbar is now fixed */}
       <div className="nb-spacer no-print" />
 
       <nav className={`nb no-print ${scrolled ? 'scrolled' : ''}`}>
