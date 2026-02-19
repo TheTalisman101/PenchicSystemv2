@@ -34,13 +34,6 @@ const categories = [
   },
 ];
 
-const stats = [
-  { value: '10+',  label: 'Years farming'    },
-  { value: '500+', label: 'Happy customers'  },
-  { value: '99%',  label: 'Fresh daily'      },
-  { value: '24h',  label: 'Order processing' },
-];
-
 export default function Home() {
   const typedRef = useRef(null);
   const [showContact,       setShowContact]       = useState(false);
@@ -264,31 +257,6 @@ export default function Home() {
         .hero-bar-item:hover { color: #74c69d; background: rgba(116,198,157,0.06); }
 
         /* ══════════════════════════════════════
-           STATS
-        ══════════════════════════════════════ */
-        .stats-band { background: #0d2419; }
-        .stats-inner {
-          max-width: 1280px; margin: 0 auto; padding: 0 24px;
-          display: grid; grid-template-columns: repeat(2, 1fr);
-          border-left: 1px solid rgba(255,255,255,0.04);
-        }
-        @media (min-width: 640px) { .stats-inner { grid-template-columns: repeat(4, 1fr); } }
-
-        .stat-cell {
-          padding: 32px 24px;
-          border-right: 1px solid rgba(255,255,255,0.04);
-          border-bottom: 1px solid rgba(255,255,255,0.04);
-          display: flex; flex-direction: column; align-items: center; gap: 4px;
-        }
-        @media (min-width: 640px) { .stat-cell { border-bottom: none; } }
-        .stat-number {
-          font-family: 'Playfair Display', serif;
-          font-size: 36px; font-weight: 700;
-          color: #74c69d; line-height: 1; letter-spacing: -1px;
-        }
-        .stat-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.35); }
-
-        /* ══════════════════════════════════════
            SHARED SECTION
         ══════════════════════════════════════ */
         .section { padding: 96px 0; }
@@ -383,8 +351,7 @@ export default function Home() {
         .prod-grid {
           display: grid; gap: 20px; width: 100%;
           grid-template-columns: 1fr;
-          grid-auto-rows: 1fr;
-          align-items: stretch;
+          grid-auto-rows: 1fr; align-items: stretch;
         }
         @media (min-width: 600px)  { .prod-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .prod-grid { grid-template-columns: repeat(4, 1fr); } }
@@ -431,7 +398,6 @@ export default function Home() {
           padding: 4px 10px; border-radius: 8px;
           backdrop-filter: blur(8px); white-space: nowrap;
         }
-        /* Discount % badge — top right on image */
         .prod-discount-badge {
           position: absolute; top: 12px; right: 12px;
           font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
@@ -468,15 +434,11 @@ export default function Home() {
           padding-top: 14px; border-top: 1px solid #f0f7f3;
           margin-top: auto; gap: 8px;
         }
-
-        /* Normal price */
         .prod-price {
           font-family: 'Playfair Display', serif;
           font-size: 20px; font-weight: 700;
           color: #2d6a4f; letter-spacing: -0.4px;
         }
-
-        /* Discount price block */
         .prod-price-wrap { display: flex; flex-direction: column; gap: 1px; }
         .prod-price-original {
           font-size: 11px; font-weight: 500;
@@ -490,7 +452,6 @@ export default function Home() {
         .prod-price-savings {
           font-size: 10px; font-weight: 600; color: #40916c; margin-top: 1px;
         }
-
         .prod-stock-label {
           font-size: 11px; font-weight: 600;
           padding: 3px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
@@ -721,20 +682,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ STATS ══════════════════════════════════════════════════════════ */}
-        <div className="stats-band">
-          <div className="stats-inner">
-            {stats.map((s, i) => (
-              <ScrollReveal key={s.label} delay={i * 0.08}>
-                <div className="stat-cell">
-                  <div className="stat-number">{s.value}</div>
-                  <div className="stat-label">{s.label}</div>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-
         {/* ══ CATEGORIES ════════════════════════════════════════════════════ */}
         <section className="section bg-tint">
           <div className="section-inner">
@@ -798,8 +745,6 @@ export default function Home() {
                     <div key={p.id} className="prod-cell">
                       <ScrollReveal delay={i * 0.07}>
                         <Link to={`/product/${p.id}`} className="prod-card">
-
-                          {/* Image */}
                           <div className="prod-img">
                             <img src={p.image_url} alt={p.name} loading="lazy" />
                             {p.category && (
@@ -811,8 +756,6 @@ export default function Home() {
                               <span className={`prod-stock-dot ${p.stock > 0 ? 'in' : 'out'}`} />
                             )}
                           </div>
-
-                          {/* Body */}
                           <div className="prod-body">
                             <h3 className="prod-name">{p.name}</h3>
                             <p className="prod-desc">{p.description}</p>
@@ -837,7 +780,6 @@ export default function Home() {
                               </span>
                             </div>
                           </div>
-
                         </Link>
                       </ScrollReveal>
                     </div>
