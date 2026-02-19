@@ -7,7 +7,7 @@ import ScrollReveal from '../components/animations/ScrollReveal';
 import {
   MapPin, Phone, Mail, Store, ExternalLink,
   Egg, Beef, ChevronLeft, ChevronRight,
-  Leaf, ArrowRight, X, Sprout,
+  ArrowRight, X, Sprout,
 } from 'lucide-react';
 
 const heroImages = [
@@ -66,10 +66,26 @@ export default function Home() {
   }, [isPaused]);
 
   useEffect(() => {
-    supabase
-      .from('products').select('*').gt('stock', 0)
-      .order('created_at', { ascending: false }).limit(4)
-      .then(({ data, error }) => { if (!error) setFeaturedProducts(data || []); });
+    const fetchWithDiscounts = async () => {
+      const { data: products, error } = await supabase
+        .from('products').select('*').gt('stock', 0)
+        .order('created_at', { ascending: false }).limit(4);
+      if (error || !products) return;
+
+      const now = new Date().toISOString();
+      const { data: discounts } = await supabase
+        .from('discounts').select('*')
+        .lte('start_date', now)
+        .gte('end_date', now);
+
+      setFeaturedProducts(
+        products.map(p => ({
+          ...p,
+          discount: discounts?.find(d => d.product_id === p.id) || null,
+        }))
+      );
+    };
+    fetchWithDiscounts();
   }, []);
 
   const nextImage      = () => setCurrentImageIndex(p => (p === heroImages.length - 1 ? 0 : p + 1));
@@ -106,16 +122,14 @@ export default function Home() {
             rgba(10,28,18,0.60) 100%);
         }
         .hero-accent {
-          position: absolute; top: 0; left: 0; right: 0;
-          height: 2px;
+          position: absolute; top: 0; left: 0; right: 0; height: 2px;
           background: linear-gradient(90deg,
             transparent 0%, #40916c 30%, #74c69d 50%, #40916c 70%, transparent 100%);
           z-index: 6;
         }
         .hero-content {
           position: relative; z-index: 3;
-          width: 100%; max-width: 1280px;
-          padding: 0 24px;
+          width: 100%; max-width: 1280px; padding: 0 24px;
         }
         @media (min-width: 1024px) { .hero-content { padding: 0 80px; } }
 
@@ -135,8 +149,8 @@ export default function Home() {
           animation: pulse-dot 2s ease-in-out infinite;
         }
         @keyframes pulse-dot {
-          0%,100% { opacity:1; transform:scale(1); }
-          50%      { opacity:0.5; transform:scale(0.8); }
+          0%,100% { opacity: 1; transform: scale(1); }
+          50%      { opacity: 0.5; transform: scale(0.8); }
         }
         .hero-title {
           font-family: 'Playfair Display', serif;
@@ -192,7 +206,7 @@ export default function Home() {
           background: linear-gradient(to bottom, rgba(255,255,255,0.4), transparent);
           animation: scroll-pulse 2s ease-in-out infinite;
         }
-        @keyframes scroll-pulse { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
+        @keyframes scroll-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
 
         .carousel-btn {
           position: absolute; top: 50%; transform: translateY(-50%);
@@ -214,10 +228,7 @@ export default function Home() {
           display: flex; flex-direction: column; gap: 6px; z-index: 4;
         }
         @media (max-width: 767px) {
-          .carousel-dots {
-            flex-direction: row;
-            bottom: 88px; right: 50%; transform: translateX(50%);
-          }
+          .carousel-dots { flex-direction: row; bottom: 88px; right: 50%; transform: translateX(50%); }
         }
         .carousel-dot {
           border: none; cursor: pointer; padding: 0;
@@ -344,10 +355,7 @@ export default function Home() {
           font-size: 24px; font-weight: 700; color: #0d2419; margin-bottom: 10px;
         }
         .cat-desc { font-size: 14px; color: #6b8c77; line-height: 1.65; margin-bottom: 28px; }
-        .cat-arrow {
-          display: inline-flex; align-items: center;
-          gap: 6px; font-size: 13px; font-weight: 600; color: #40916c;
-        }
+        .cat-arrow { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #40916c; }
         .cat-arrow-icon {
           width: 28px; height: 28px; background: #d8f3dc;
           border-radius: 8px; display: flex; align-items: center; justify-content: center;
@@ -372,38 +380,29 @@ export default function Home() {
         }
         .view-all:hover { border-color: #40916c; background: #f0f7f3; }
 
-        /* Grid — equal columns, equal rows */
         .prod-grid {
-          display: grid;
-          gap: 20px;
-          width: 100%;
+          display: grid; gap: 20px; width: 100%;
           grid-template-columns: 1fr;
-          /* All cells the same height */
           grid-auto-rows: 1fr;
           align-items: stretch;
         }
         @media (min-width: 600px)  { .prod-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .prod-grid { grid-template-columns: repeat(4, 1fr); } }
 
-        /* Wrapper that contains ScrollReveal + card — must fill the cell */
         .prod-cell {
           min-width: 0; width: 100%; height: 100%;
           display: flex; flex-direction: column;
         }
-        /* ScrollReveal renders a div — make it fill too */
         .prod-cell > div {
           width: 100%; height: 100%;
           display: flex; flex-direction: column;
         }
 
-        /* The card itself */
         .prod-card {
           display: flex; flex-direction: column;
           text-decoration: none; background: #fff;
           border: 1px solid #e2ede8; border-radius: 20px;
-          overflow: hidden; width: 100%; min-width: 0;
-          /* Fill every cell identically */
-          height: 100%;
+          overflow: hidden; width: 100%; min-width: 0; height: 100%;
           transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
         }
         .prod-card:hover {
@@ -412,20 +411,14 @@ export default function Home() {
           transform: translateY(-4px);
         }
 
-        /* Fixed-height image — never affected by natural image size */
         .prod-img {
-          position: relative;
-          width: 100%;
-          height: 200px;
-          flex-shrink: 0;
-          overflow: hidden;
-          background: #f0f7f3;
+          position: relative; width: 100%; height: 200px;
+          flex-shrink: 0; overflow: hidden; background: #f0f7f3;
         }
         .prod-img img {
           position: absolute; inset: 0;
           width: 100%; height: 100%;
-          object-fit: cover; object-position: center;
-          display: block;
+          object-fit: cover; object-position: center; display: block;
           transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
         }
         .prod-card:hover .prod-img img { transform: scale(1.06); }
@@ -436,8 +429,14 @@ export default function Home() {
           letter-spacing: 0.8px; text-transform: uppercase;
           background: rgba(10,28,18,0.72); color: #74c69d;
           padding: 4px 10px; border-radius: 8px;
-          backdrop-filter: blur(8px);
-          white-space: nowrap;
+          backdrop-filter: blur(8px); white-space: nowrap;
+        }
+        /* Discount % badge — top right on image */
+        .prod-discount-badge {
+          position: absolute; top: 12px; right: 12px;
+          font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
+          background: #ef4444; color: #fff;
+          padding: 4px 8px; border-radius: 8px; line-height: 1.3;
         }
         .prod-stock-dot {
           position: absolute; top: 12px; right: 12px;
@@ -446,7 +445,6 @@ export default function Home() {
         .prod-stock-dot.in  { background: #74c69d; box-shadow: 0 0 0 3px rgba(116,198,157,0.25); }
         .prod-stock-dot.out { background: #f87171; box-shadow: 0 0 0 3px rgba(248,113,113,0.25); }
 
-        /* Body grows to fill remaining height */
         .prod-body {
           padding: 18px; flex: 1;
           display: flex; flex-direction: column;
@@ -456,34 +454,46 @@ export default function Home() {
           font-size: 16px; font-weight: 700; color: #0d2419;
           margin-bottom: 5px; line-height: 1.3;
           display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+          -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
         .prod-desc {
           font-size: 12.5px; color: #6b8c77;
-          line-height: 1.6; flex: 1;
+          line-height: 1.6; flex: 1; margin-bottom: 16px;
           display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          margin-bottom: 16px;
+          -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
-        /* Footer always at the bottom of every card */
         .prod-foot {
-          display: flex; align-items: center;
+          display: flex; align-items: flex-end;
           justify-content: space-between;
           padding-top: 14px; border-top: 1px solid #f0f7f3;
-          margin-top: auto;
+          margin-top: auto; gap: 8px;
         }
+
+        /* Normal price */
         .prod-price {
           font-family: 'Playfair Display', serif;
           font-size: 20px; font-weight: 700;
           color: #2d6a4f; letter-spacing: -0.4px;
         }
+
+        /* Discount price block */
+        .prod-price-wrap { display: flex; flex-direction: column; gap: 1px; }
+        .prod-price-original {
+          font-size: 11px; font-weight: 500;
+          color: #a0b8aa; text-decoration: line-through; line-height: 1;
+        }
+        .prod-price-discounted {
+          font-family: 'Playfair Display', serif;
+          font-size: 20px; font-weight: 700;
+          color: #2d6a4f; letter-spacing: -0.4px; line-height: 1.15;
+        }
+        .prod-price-savings {
+          font-size: 10px; font-weight: 600; color: #40916c; margin-top: 1px;
+        }
+
         .prod-stock-label {
           font-size: 11px; font-weight: 600;
-          padding: 3px 9px; border-radius: 8px;
+          padding: 3px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
         }
         .prod-stock-label.in  { background: #d8f3dc; color: #1b4332; }
         .prod-stock-label.out { background: #fee2e2; color: #991b1b; }
@@ -597,8 +607,7 @@ export default function Home() {
         .maps-link {
           display: inline-flex; align-items: center; gap: 4px;
           font-size: 12px; font-weight: 600; color: #40916c;
-          background: none; border: none;
-          font-family: 'DM Sans', sans-serif;
+          background: none; border: none; font-family: 'DM Sans', sans-serif;
           cursor: pointer; padding: 0; margin-top: 5px; transition: color 0.15s;
         }
         .maps-link:hover { color: #2d6a4f; }
@@ -608,8 +617,7 @@ export default function Home() {
           color: #fff; font-family: 'DM Sans', sans-serif;
           font-size: 14px; font-weight: 600;
           border: none; border-radius: 14px; cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 4px 16px rgba(45,106,79,0.3);
+          transition: all 0.2s ease; box-shadow: 0 4px 16px rgba(45,106,79,0.3);
         }
         .modal-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(45,106,79,0.4); }
       `}</style>
@@ -679,19 +687,15 @@ export default function Home() {
               transition={{ duration: 0.9, delay: 0.52, ease: [0.16,1,0.3,1] }}
             >
               <div className="hero-actions">
-                <Link to="/shop" className="btn-primary">
-                  <Store size={15} /> Shop Now
-                </Link>
+                <Link to="/shop" className="btn-primary"><Store size={15} />Shop Now</Link>
                 <button className="btn-ghost" onClick={() => setShowContact(true)}>
-                  <Phone size={15} /> Contact Us
+                  <Phone size={15} />Contact Us
                 </button>
               </div>
             </motion.div>
           </div>
 
-          <div className="hero-scroll">
-            <div className="scroll-line" />
-          </div>
+          <div className="hero-scroll"><div className="scroll-line" /></div>
 
           <div className="carousel-dots">
             {heroImages.map((_, i) => (
@@ -706,13 +710,13 @@ export default function Home() {
 
           <div className="hero-bar">
             <button className="hero-bar-item" onClick={openGoogleMaps}>
-              <MapPin size={13} /> Limuru, Kiambu
+              <MapPin size={13} />Limuru, Kiambu
             </button>
             <a href="tel:+254722395370" className="hero-bar-item">
-              <Phone size={13} /> +254 722 395 370
+              <Phone size={13} />+254 722 395 370
             </a>
             <a href="mailto:info@penchicfarm.com" className="hero-bar-item">
-              <Mail size={13} /> info@penchicfarm.com
+              <Mail size={13} />info@penchicfarm.com
             </a>
           </div>
         </section>
@@ -781,32 +785,64 @@ export default function Home() {
               </div>
 
               <div className="prod-grid">
-                {featuredProducts.map((p, i) => (
-                  // prod-cell constrains the ScrollReveal wrapper + card to the grid column
-                  <div key={p.id} className="prod-cell">
-                    <ScrollReveal delay={i * 0.07}>
-                      <Link to={`/product/${p.id}`} className="prod-card">
-                        <div className="prod-img">
-                          <img src={p.image_url} alt={p.name} loading="lazy" />
-                          {p.category && (
-                            <span className="prod-cat-badge">{p.category}</span>
-                          )}
-                          <span className={`prod-stock-dot ${p.stock > 0 ? 'in' : 'out'}`} />
-                        </div>
-                        <div className="prod-body">
-                          <h3 className="prod-name">{p.name}</h3>
-                          <p className="prod-desc">{p.description}</p>
-                          <div className="prod-foot">
-                            <span className="prod-price">KES {p.price.toLocaleString()}</span>
-                            <span className={`prod-stock-label ${p.stock > 0 ? 'in' : 'out'}`}>
-                              {p.stock > 0 ? 'In stock' : 'Out of stock'}
-                            </span>
+                {featuredProducts.map((p, i) => {
+                  const hasDiscount     = !!p.discount;
+                  const discountedPrice = hasDiscount
+                    ? Math.round(p.price - (p.price * p.discount.percentage / 100))
+                    : p.price;
+                  const savings = hasDiscount
+                    ? Math.round(p.price * p.discount.percentage / 100)
+                    : 0;
+
+                  return (
+                    <div key={p.id} className="prod-cell">
+                      <ScrollReveal delay={i * 0.07}>
+                        <Link to={`/product/${p.id}`} className="prod-card">
+
+                          {/* Image */}
+                          <div className="prod-img">
+                            <img src={p.image_url} alt={p.name} loading="lazy" />
+                            {p.category && (
+                              <span className="prod-cat-badge">{p.category}</span>
+                            )}
+                            {hasDiscount ? (
+                              <span className="prod-discount-badge">-{p.discount.percentage}%</span>
+                            ) : (
+                              <span className={`prod-stock-dot ${p.stock > 0 ? 'in' : 'out'}`} />
+                            )}
                           </div>
-                        </div>
-                      </Link>
-                    </ScrollReveal>
-                  </div>
-                ))}
+
+                          {/* Body */}
+                          <div className="prod-body">
+                            <h3 className="prod-name">{p.name}</h3>
+                            <p className="prod-desc">{p.description}</p>
+                            <div className="prod-foot">
+                              {hasDiscount ? (
+                                <div className="prod-price-wrap">
+                                  <span className="prod-price-original">
+                                    KES {p.price.toLocaleString()}
+                                  </span>
+                                  <span className="prod-price-discounted">
+                                    KES {discountedPrice.toLocaleString()}
+                                  </span>
+                                  <span className="prod-price-savings">
+                                    Save KES {savings.toLocaleString()}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="prod-price">KES {p.price.toLocaleString()}</span>
+                              )}
+                              <span className={`prod-stock-label ${p.stock > 0 ? 'in' : 'out'}`}>
+                                {p.stock > 0 ? 'In stock' : 'Out of stock'}
+                              </span>
+                            </div>
+                          </div>
+
+                        </Link>
+                      </ScrollReveal>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </section>
