@@ -575,7 +575,7 @@ const ProductDetails = () => {
                   <div className="pd-visit-card-orb" style={{ bottom: -40, left: -40 }} />
                   <p className="pd-visit-text">
                     {!user
-                      ? 'Sign in to purchase this item or visit us in-store.'
+                      ? 'Online shopping is not available yet, to purchase this item visit us in-store.'
                       : 'Visit us in-store to purchase this item.'}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
