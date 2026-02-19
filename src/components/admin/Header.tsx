@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import {
   Search, Menu, Sun, Moon, User, Settings, LogOut, X,
   ChevronDown, Package, Users, ShoppingBag,
@@ -33,15 +34,13 @@ const TYPE_CONFIG = {
 const groupByType = (results: SearchResult[]) =>
   results.reduce((acc, r) => { (acc[r.type] ??= []).push(r); return acc; }, {} as Record<string, SearchResult[]>);
 
-// ── Shared animation variants ──────────────────────────────────────────────────
 const dropdownVariants = {
   hidden:  { opacity: 0, scale: 0.96, y: -6 },
   visible: { opacity: 1, scale: 1,    y: 0,  transition: { type: 'spring', stiffness: 420, damping: 30 } },
   exit:    { opacity: 0, scale: 0.96, y: -6, transition: { duration: 0.14, ease: 'easeIn' } },
 };
 
-// ── Shared search results renderer ────────────────────────────────────────────
-// Extracted so desktop dropdown and mobile overlay share the same markup.
+// ── Shared search results body ─────────────────────────────────────────────────
 const SearchResultsContent: React.FC<{
   isSearching: boolean;
   searchQuery: string;
@@ -87,7 +86,6 @@ const SearchResultsContent: React.FC<{
             </div>
           );
         })}
-        {/* Footer hint — desktop only (no keyboard on mobile) */}
         {!compact && (
           <div className="border-t border-neutral-100 px-3 py-2 mt-0.5">
             <p className="text-[10px] text-neutral-400 text-center">
@@ -114,18 +112,20 @@ const SearchResultsContent: React.FC<{
     );
   }
 
-  // Empty / prompt state for mobile overlay
+  // Empty prompt for mobile overlay
   if (compact) {
     return (
       <div className="px-4 py-5">
         <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-3">Search across</p>
         <div className="space-y-2">
-          {(Object.entries(TYPE_CONFIG) as [keyof typeof TYPE_CONFIG, typeof TYPE_CONFIG[keyof typeof TYPE_CONFIG]][]).map(([type, { label, Icon, iconCls, bgCls }]) => (
-            <div key={type} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${bgCls}`}>
-              <Icon className={`w-4 h-4 ${iconCls}`} />
-              <span className="text-sm font-medium text-neutral-700">{label}</span>
-            </div>
-          ))}
+          {(Object.entries(TYPE_CONFIG) as [keyof typeof TYPE_CONFIG, typeof TYPE_CONFIG[keyof typeof TYPE_CONFIG]][]).map(
+            ([type, { label, Icon, iconCls, bgCls }]) => (
+              <div key={type} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${bgCls}`}>
+                <Icon className={`w-4 h-4 ${iconCls}`} />
+                <span className="text-sm font-medium text-neutral-700">{label}</span>
+              </div>
+            )
+          )}
         </div>
       </div>
     );
@@ -140,7 +140,7 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
   const [isDarkMode,        setIsDarkMode]        = useState(false);
   const [showAccountMenu,   setShowAccountMenu]   = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [showMobileSearch,  setShowMobileSearch]  = useState(false);   // ← new
+  const [showMobileSearch,  setShowMobileSearch]  = useState(false);
   const [searchQuery,       setSearchQuery]       = useState('');
   const [searchResults,     setSearchResults]     = useState<SearchResult[]>([]);
   const [isSearching,       setIsSearching]       = useState(false);
@@ -150,12 +150,12 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
   const setUser = useStore((s) => s.setUser);
   const navigate = useNavigate();
 
-  const accountRef         = useRef<HTMLDivElement>(null);
-  const searchRef          = useRef<HTMLDivElement>(null);
-  const searchInputRef     = useRef<HTMLInputElement>(null);
-  const mobileInputRef     = useRef<HTMLInputElement>(null);   // ← new
+  const accountRef     = useRef<HTMLDivElement>(null);
+  const searchRef      = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Close dropdowns on outside click ───────────────────────────────────────
+  // ── Outside click ────────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (accountRef.current && !accountRef.current.contains(e.target as Node))
@@ -169,7 +169,7 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // ── ⌘K / Ctrl+K + Escape ───────────────────────────────────────────────────
+  // ── ⌘K / Escape ─────────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -180,7 +180,7 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
       if (e.key === 'Escape') {
         setShowSearchResults(false);
         setSearchFocused(false);
-        setShowMobileSearch(false);    // ← close mobile overlay too
+        setShowMobileSearch(false);
         searchInputRef.current?.blur();
       }
     };
@@ -188,18 +188,16 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  // ── Auto-focus mobile search input when overlay opens ──────────────────────
+  // ── Auto-focus mobile input ───────────────────────────────────────────────────
   useEffect(() => {
     if (showMobileSearch) {
-      // rAF ensures the element is mounted before focusing
       requestAnimationFrame(() => mobileInputRef.current?.focus());
     } else {
-      // Reset search when overlay is dismissed
       clearSearch();
     }
   }, [showMobileSearch]);
 
-  // ── Search ──────────────────────────────────────────────────────────────────
+  // ── Search ───────────────────────────────────────────────────────────────────
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
     if (query.length < 2) { setSearchResults([]); setShowSearchResults(false); return; }
@@ -236,7 +234,11 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
     }
   }, []);
 
-  const clearSearch = () => { setSearchQuery(''); setSearchResults([]); setShowSearchResults(false); };
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowSearchResults(false);
+  };
 
   const handleResultClick = (url: string) => {
     navigate(url);
@@ -245,7 +247,7 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
     setShowMobileSearch(false);
   };
 
-  // ── Logout ──────────────────────────────────────────────────────────────────
+  // ── Logout ───────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
     try { await supabase.auth.signOut(); } catch {}
     setUser(null);
@@ -267,7 +269,7 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
       ">
         <div className="flex items-center justify-between h-14 sm:h-16">
 
-          {/* ── Left ───────────────────────────────────────────────────────── */}
+          {/* ── Left ─────────────────────────────────────────────────────────── */}
           <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={onMobileMenuToggle}
@@ -276,18 +278,15 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
             >
               <Menu className="w-5 h-5" />
             </button>
-
             {title && (
               <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold tracking-tight text-neutral-900 leading-none">
-                  {title}
-                </h1>
+                <h1 className="text-lg font-semibold tracking-tight text-neutral-900 leading-none">{title}</h1>
                 {subtitle && <p className="text-xs text-neutral-400 font-medium mt-1">{subtitle}</p>}
               </div>
             )}
           </div>
 
-          {/* ── Right ──────────────────────────────────────────────────────── */}
+          {/* ── Right ────────────────────────────────────────────────────────── */}
           <div className="flex items-center gap-0.5 sm:gap-1.5">
 
             {/* Desktop search */}
@@ -346,7 +345,7 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
               </AnimatePresence>
             </div>
 
-            {/* Mobile search trigger — opens full-screen overlay */}
+            {/* Mobile search trigger */}
             <button
               onClick={() => setShowMobileSearch(true)}
               className="md:hidden p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 active:bg-neutral-200 transition-colors"
@@ -419,7 +418,6 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
                 </motion.div>
               </motion.button>
 
-              {/* Account dropdown — safe on narrow screens */}
               <AnimatePresence>
                 {showAccountMenu && (
                   <motion.div
@@ -427,7 +425,6 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
                     initial="hidden" animate="visible" exit="exit"
                     className="absolute top-full right-0 mt-2 w-52 sm:w-56 max-w-[calc(100vw-1.5rem)] bg-white border border-neutral-200/80 rounded-xl shadow-xl shadow-neutral-900/[0.07] z-50 overflow-hidden"
                   >
-                    {/* Profile header */}
                     <div className="px-3.5 sm:px-4 py-3 sm:py-3.5 bg-neutral-50/90 border-b border-neutral-100">
                       <div className="flex items-center gap-2.5 sm:gap-3">
                         <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-neutral-600 to-neutral-900 ring-2 ring-white shadow-sm">
@@ -441,8 +438,6 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
                         </div>
                       </div>
                     </div>
-
-                    {/* Nav items */}
                     <div className="p-1.5 space-y-0.5">
                       {([
                         { Icon: User,     label: 'Profile Settings', path: '/admin/settings' },
@@ -460,8 +455,6 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
                         </button>
                       ))}
                     </div>
-
-                    {/* Sign out */}
                     <div className="border-t border-neutral-100 p-1.5">
                       <button
                         onClick={handleLogout}
@@ -482,57 +475,67 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle, title, subtitle }) 
         </div>
       </header>
 
-      {/* ── Mobile full-screen search overlay ─────────────────────────────────── */}
-      <AnimatePresence>
-        {showMobileSearch && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 36 }}
-            className="fixed inset-0 z-50 bg-white flex flex-col md:hidden"
-          >
-            {/* Search bar */}
-            <div className="flex items-center gap-2.5 px-3 py-3 border-b border-neutral-200 bg-white">
-              <Search className="w-4 h-4 text-neutral-400 flex-shrink-0" />
-              <input
-                ref={mobileInputRef}
-                type="text"
-                placeholder="Search orders, users, products…"
-                value={searchQuery}
-                onChange={e => handleSearch(e.target.value)}
-                className="flex-1 text-sm text-neutral-800 placeholder:text-neutral-400 bg-transparent outline-none"
-              />
-              {searchQuery ? (
+      {/*
+        ── Mobile search overlay — portaled to document.body ──────────────────────
+        WHY: The <header> has backdrop-blur-xl which sets backdrop-filter: blur().
+        This creates a new CSS containing block, so position:fixed children are
+        anchored to the header (top of screen) instead of the viewport.
+        Portaling to document.body escapes this stacking context entirely.
+      */}
+      {typeof document !== 'undefined' && ReactDOM.createPortal(
+        <AnimatePresence>
+          {showMobileSearch && (
+            <motion.div
+              key="mobile-search"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 36 }}
+              className="fixed inset-0 z-50 bg-white flex flex-col md:hidden"
+            >
+              {/* Search bar */}
+              <div className="flex items-center gap-2.5 px-3 py-3 border-b border-neutral-200 bg-white flex-shrink-0">
+                <Search className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                <input
+                  ref={mobileInputRef}
+                  type="text"
+                  placeholder="Search orders, users, products…"
+                  value={searchQuery}
+                  onChange={e => handleSearch(e.target.value)}
+                  className="flex-1 text-sm text-neutral-800 placeholder:text-neutral-400 bg-transparent outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={clearSearch}
+                    className="p-1 rounded-lg text-neutral-400 hover:text-neutral-600 active:bg-neutral-100 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
                 <button
-                  onClick={clearSearch}
-                  className="p-1 rounded-lg text-neutral-400 hover:text-neutral-600 transition-colors"
+                  onClick={() => setShowMobileSearch(false)}
+                  className="text-sm font-medium text-neutral-500 hover:text-neutral-800 active:text-neutral-900 transition-colors ml-1 flex-shrink-0"
+                  aria-label="Close search"
                 >
-                  <X className="w-4 h-4" />
+                  Cancel
                 </button>
-              ) : null}
-              <button
-                onClick={() => setShowMobileSearch(false)}
-                className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 transition-colors ml-1"
-                aria-label="Close search"
-              >
-                <span className="text-sm font-medium">Cancel</span>
-              </button>
-            </div>
+              </div>
 
-            {/* Results / prompt */}
-            <div className="flex-1 overflow-y-auto">
-              <SearchResultsContent
-                isSearching={isSearching}
-                searchQuery={searchQuery}
-                groupedResults={groupedResults}
-                onResultClick={handleResultClick}
-                compact
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {/* Results / prompt */}
+              <div className="flex-1 overflow-y-auto">
+                <SearchResultsContent
+                  isSearching={isSearching}
+                  searchQuery={searchQuery}
+                  groupedResults={groupedResults}
+                  onResultClick={handleResultClick}
+                  compact
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 };
