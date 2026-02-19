@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import ScrollReveal from '../components/animations/ScrollReveal';
 import {
   MapPin, Phone, Mail, Store, ExternalLink,
-  ChevronDown, Egg, Beef, ChevronLeft, ChevronRight,
+  Egg, Beef, ChevronLeft, ChevronRight,
   Leaf, ArrowRight, X, Sprout,
 } from 'lucide-react';
 
@@ -42,7 +42,7 @@ const stats = [
 ];
 
 export default function Home() {
-  const typedRef  = useRef(null);
+  const typedRef = useRef(null);
   const [showContact,       setShowContact]       = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [featuredProducts,  setFeaturedProducts]  = useState<any[]>([]);
@@ -84,170 +84,122 @@ export default function Home() {
         *, *::before, *::after { box-sizing: border-box; }
         .home-root { font-family: 'DM Sans', sans-serif; background: #fff; color: #0d2419; }
 
-        /* ── HERO ─────────────────────────────────── */
+        /* ══════════════════════════════════════
+           HERO
+        ══════════════════════════════════════ */
         .hero {
           position: relative;
-          height: 100svh;
-          min-height: 620px;
+          height: 100svh; min-height: 620px;
           overflow: hidden;
-          display: grid;
-          place-items: center;
+          display: grid; place-items: center;
         }
         .hero-slide {
-          position: absolute;
-          inset: 0;
-          background-size: cover;
-          background-position: center;
+          position: absolute; inset: 0;
+          background-size: cover; background-position: center;
           will-change: opacity;
         }
         .hero-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(160deg, rgba(10,28,18,0.72) 0%, rgba(10,28,18,0.28) 55%, rgba(10,28,18,0.60) 100%);
+          position: absolute; inset: 0;
+          background: linear-gradient(160deg,
+            rgba(10,28,18,0.72) 0%,
+            rgba(10,28,18,0.28) 55%,
+            rgba(10,28,18,0.60) 100%);
         }
         .hero-accent {
-          position: absolute;
-          top: 0; left: 0; right: 0;
+          position: absolute; top: 0; left: 0; right: 0;
           height: 2px;
-          background: linear-gradient(90deg, transparent 0%, #40916c 30%, #74c69d 50%, #40916c 70%, transparent 100%);
+          background: linear-gradient(90deg,
+            transparent 0%, #40916c 30%, #74c69d 50%, #40916c 70%, transparent 100%);
           z-index: 6;
         }
         .hero-content {
-          position: relative;
-          z-index: 3;
-          width: 100%;
-          max-width: 1280px;
+          position: relative; z-index: 3;
+          width: 100%; max-width: 1280px;
           padding: 0 24px;
         }
         @media (min-width: 1024px) { .hero-content { padding: 0 80px; } }
 
         .hero-eyebrow {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
+          display: inline-flex; align-items: center; gap: 7px;
           background: rgba(116,198,157,0.12);
           border: 1px solid rgba(116,198,157,0.25);
-          border-radius: 100px;
-          padding: 5px 14px 5px 10px;
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 1.8px;
-          text-transform: uppercase;
-          color: #74c69d;
-          margin-bottom: 24px;
-          width: fit-content;
-          backdrop-filter: blur(10px);
+          border-radius: 100px; padding: 5px 14px 5px 10px;
+          font-size: 11px; font-weight: 600;
+          letter-spacing: 1.8px; text-transform: uppercase;
+          color: #74c69d; margin-bottom: 24px;
+          width: fit-content; backdrop-filter: blur(10px);
         }
         .hero-eyebrow-dot {
           width: 6px; height: 6px;
-          background: #74c69d;
-          border-radius: 50%;
+          background: #74c69d; border-radius: 50%;
           animation: pulse-dot 2s ease-in-out infinite;
         }
         @keyframes pulse-dot {
-          0%,100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.8); }
+          0%,100% { opacity:1; transform:scale(1); }
+          50%      { opacity:0.5; transform:scale(0.8); }
         }
         .hero-title {
           font-family: 'Playfair Display', serif;
-          font-size: clamp(48px, 9vw, 96px);
-          font-weight: 700;
-          color: #fff;
-          line-height: 0.95;
-          margin: 0 0 6px;
-          letter-spacing: -2px;
+          font-size: clamp(48px, 9vw, 96px); font-weight: 700;
+          color: #fff; line-height: 0.95; margin: 0 0 6px; letter-spacing: -2px;
         }
         .hero-title-italic {
           font-family: 'Playfair Display', serif;
-          font-size: clamp(20px, 3.5vw, 32px);
-          font-weight: 600;
-          font-style: italic;
-          color: #74c69d;
-          margin: 0 0 28px;
+          font-size: clamp(20px, 3.5vw, 32px); font-weight: 600; font-style: italic;
+          color: #74c69d; margin: 0 0 28px;
         }
         .hero-desc {
           font-size: clamp(14px, 1.6vw, 16px);
-          color: rgba(255,255,255,0.62);
-          max-width: 380px;
-          margin: 0 0 40px;
-          line-height: 1.75;
+          color: rgba(255,255,255,0.62); max-width: 380px;
+          margin: 0 0 40px; line-height: 1.75;
         }
-        .hero-actions {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
+        .hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
         .btn-primary {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
+          display: inline-flex; align-items: center; gap: 8px;
           padding: 14px 26px;
           background: linear-gradient(135deg, #40916c, #2d6a4f);
-          color: #fff;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 14px;
-          font-weight: 600;
-          border-radius: 14px;
-          text-decoration: none;
-          border: none;
-          cursor: pointer;
+          color: #fff; font-family: 'DM Sans', sans-serif;
+          font-size: 14px; font-weight: 600; border-radius: 14px;
+          text-decoration: none; border: none; cursor: pointer;
           transition: all 0.25s ease;
           box-shadow: 0 4px 24px rgba(45,106,79,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
         }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(45,106,79,0.5); }
+        .btn-primary:active { transform: translateY(0); }
+
         .btn-ghost {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
+          display: inline-flex; align-items: center; gap: 8px;
           padding: 13px 26px;
-          background: rgba(255,255,255,0.08);
-          color: rgba(255,255,255,0.85);
-          font-family: 'DM Sans', sans-serif;
-          font-size: 14px;
-          font-weight: 600;
-          border-radius: 14px;
-          text-decoration: none;
+          background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85);
+          font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+          border-radius: 14px; text-decoration: none;
           border: 1px solid rgba(255,255,255,0.18);
-          cursor: pointer;
-          transition: all 0.25s ease;
-          backdrop-filter: blur(10px);
+          cursor: pointer; transition: all 0.25s ease; backdrop-filter: blur(10px);
         }
-        .btn-ghost:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.35); transform: translateY(-2px); }
+        .btn-ghost:hover {
+          background: rgba(255,255,255,0.15);
+          border-color: rgba(255,255,255,0.35);
+          transform: translateY(-2px);
+        }
 
         .hero-scroll {
-          position: absolute;
-          bottom: 88px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 4;
+          position: absolute; bottom: 88px; left: 50%;
+          transform: translateX(-50%); z-index: 4;
         }
         .scroll-line {
-          width: 1px;
-          height: 40px;
+          width: 1px; height: 40px; margin: 0 auto;
           background: linear-gradient(to bottom, rgba(255,255,255,0.4), transparent);
-          margin: 0 auto;
           animation: scroll-pulse 2s ease-in-out infinite;
         }
-        @keyframes scroll-pulse {
-          0%,100% { opacity: 0.4; }
-          50%     { opacity: 1;   }
-        }
+        @keyframes scroll-pulse { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
 
         .carousel-btn {
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          z-index: 5;
-          width: 42px; height: 42px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.15);
-          color: #fff;
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer;
-          backdrop-filter: blur(10px);
-          transition: all 0.2s ease;
+          position: absolute; top: 50%; transform: translateY(-50%);
+          z-index: 5; width: 42px; height: 42px; border-radius: 50%;
+          background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+          color: #fff; display: flex; align-items: center; justify-content: center;
+          cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s ease;
         }
         .carousel-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-50%) scale(1.08); }
         .carousel-btn.left  { left: 20px; }
@@ -258,21 +210,18 @@ export default function Home() {
         }
 
         .carousel-dots {
-          position: absolute;
-          bottom: 88px;
-          right: 40px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          z-index: 4;
+          position: absolute; bottom: 88px; right: 40px;
+          display: flex; flex-direction: column; gap: 6px; z-index: 4;
         }
         @media (max-width: 767px) {
-          .carousel-dots { flex-direction: row; bottom: 88px; right: 50%; transform: translateX(50%); }
+          .carousel-dots {
+            flex-direction: row;
+            bottom: 88px; right: 50%; transform: translateX(50%);
+          }
         }
         .carousel-dot {
           border: none; cursor: pointer; padding: 0;
-          border-radius: 2px;
-          background: rgba(255,255,255,0.3);
+          border-radius: 2px; background: rgba(255,255,255,0.3);
           transition: all 0.35s ease;
         }
         @media (min-width: 768px) {
@@ -287,52 +236,38 @@ export default function Home() {
         }
 
         .hero-bar {
-          position: absolute;
-          bottom: 0; left: 0; right: 0;
-          z-index: 4;
+          position: absolute; bottom: 0; left: 0; right: 0; z-index: 4;
           display: flex;
-          background: rgba(10,28,18,0.6);
-          backdrop-filter: blur(16px);
+          background: rgba(10,28,18,0.6); backdrop-filter: blur(16px);
           border-top: 1px solid rgba(255,255,255,0.06);
         }
         .hero-bar-item {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 13px 16px;
-          font-size: 12px;
-          font-weight: 500;
-          color: rgba(255,255,255,0.55);
-          font-family: 'DM Sans', sans-serif;
-          background: none;
-          border: none;
+          flex: 1; display: flex; align-items: center;
+          justify-content: center; gap: 8px; padding: 13px 16px;
+          font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.55);
+          font-family: 'DM Sans', sans-serif; background: none; border: none;
           border-right: 1px solid rgba(255,255,255,0.06);
-          cursor: pointer;
-          text-decoration: none;
-          transition: all 0.2s ease;
+          cursor: pointer; text-decoration: none; transition: all 0.2s ease;
         }
         .hero-bar-item:last-child { border-right: none; }
         .hero-bar-item:hover { color: #74c69d; background: rgba(116,198,157,0.06); }
 
-        /* ── STATS ─────────────────────────────────── */
+        /* ══════════════════════════════════════
+           STATS
+        ══════════════════════════════════════ */
         .stats-band { background: #0d2419; }
         .stats-inner {
-          max-width: 1280px;
-          margin: 0 auto;
-          padding: 0 24px;
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          max-width: 1280px; margin: 0 auto; padding: 0 24px;
+          display: grid; grid-template-columns: repeat(2, 1fr);
           border-left: 1px solid rgba(255,255,255,0.04);
         }
         @media (min-width: 640px) { .stats-inner { grid-template-columns: repeat(4, 1fr); } }
+
         .stat-cell {
           padding: 32px 24px;
           border-right: 1px solid rgba(255,255,255,0.04);
           border-bottom: 1px solid rgba(255,255,255,0.04);
-          display: flex; flex-direction: column;
-          align-items: center; gap: 4px;
+          display: flex; flex-direction: column; align-items: center; gap: 4px;
         }
         @media (min-width: 640px) { .stat-cell { border-bottom: none; } }
         .stat-number {
@@ -342,10 +277,13 @@ export default function Home() {
         }
         .stat-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.35); }
 
-        /* ── SHARED SECTION ────────────────────────── */
+        /* ══════════════════════════════════════
+           SHARED SECTION
+        ══════════════════════════════════════ */
         .section { padding: 96px 0; }
         .section-inner { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
         @media (min-width: 1024px) { .section-inner { padding: 0 80px; } }
+
         .section-tag {
           display: inline-flex; align-items: center; gap: 8px;
           font-size: 11px; font-weight: 700;
@@ -355,17 +293,16 @@ export default function Home() {
         .tag-bar { width: 18px; height: 2px; background: #40916c; border-radius: 1px; }
         .section-h2 {
           font-family: 'Playfair Display', serif;
-          font-size: clamp(30px, 4vw, 46px);
-          font-weight: 700; color: #0d2419;
-          line-height: 1.1; letter-spacing: -0.8px; margin-bottom: 12px;
+          font-size: clamp(30px, 4vw, 46px); font-weight: 700;
+          color: #0d2419; line-height: 1.1; letter-spacing: -0.8px; margin-bottom: 12px;
         }
-        .section-sub {
-          font-size: 15px; color: #6b8c77;
-          line-height: 1.7; max-width: 480px;
-        }
+        .section-sub { font-size: 15px; color: #6b8c77; line-height: 1.7; max-width: 480px; }
 
-        /* ── CATEGORIES ────────────────────────────── */
+        /* ══════════════════════════════════════
+           CATEGORIES
+        ══════════════════════════════════════ */
         .bg-tint { background: #f8faf9; }
+
         .cat-grid {
           display: grid; gap: 16px; margin-top: 52px;
           grid-template-columns: 1fr;
@@ -375,8 +312,7 @@ export default function Home() {
         .cat-card {
           position: relative; display: block; text-decoration: none;
           background: #fff; border: 1px solid #e2ede8;
-          border-radius: 24px; padding: 36px 36px 32px;
-          overflow: hidden;
+          border-radius: 24px; padding: 36px 36px 32px; overflow: hidden;
           transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
         }
         .cat-card-bg {
@@ -385,7 +321,11 @@ export default function Home() {
           transition: opacity 0.3s ease; opacity: 0;
         }
         .cat-card:hover .cat-card-bg { opacity: 1; }
-        .cat-card:hover { border-color: #b7e4c7; box-shadow: 0 20px 48px rgba(45,106,79,0.1); transform: translateY(-4px); }
+        .cat-card:hover {
+          border-color: #b7e4c7;
+          box-shadow: 0 20px 48px rgba(45,106,79,0.1);
+          transform: translateY(-4px);
+        }
         .cat-tag {
           display: inline-block; font-size: 10px; font-weight: 700;
           letter-spacing: 1.5px; text-transform: uppercase;
@@ -395,15 +335,19 @@ export default function Home() {
         .cat-icon-ring {
           width: 60px; height: 60px;
           background: linear-gradient(135deg, #d8f3dc, #b7e4c7);
-          border-radius: 18px;
-          display: flex; align-items: center; justify-content: center;
-          margin-bottom: 24px;
-          transition: transform 0.3s ease;
+          border-radius: 18px; display: flex; align-items: center; justify-content: center;
+          margin-bottom: 24px; transition: transform 0.3s ease;
         }
         .cat-card:hover .cat-icon-ring { transform: rotate(-4deg) scale(1.05); }
-        .cat-title { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; color: #0d2419; margin-bottom: 10px; }
+        .cat-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 24px; font-weight: 700; color: #0d2419; margin-bottom: 10px;
+        }
         .cat-desc { font-size: 14px; color: #6b8c77; line-height: 1.65; margin-bottom: 28px; }
-        .cat-arrow { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #40916c; }
+        .cat-arrow {
+          display: inline-flex; align-items: center;
+          gap: 6px; font-size: 13px; font-weight: 600; color: #40916c;
+        }
         .cat-arrow-icon {
           width: 28px; height: 28px; background: #d8f3dc;
           border-radius: 8px; display: flex; align-items: center; justify-content: center;
@@ -411,7 +355,9 @@ export default function Home() {
         }
         .cat-card:hover .cat-arrow-icon { background: #40916c; color: #fff; transform: rotate(45deg); }
 
-        /* ── FEATURED PRODUCTS ─────────────────────── */
+        /* ══════════════════════════════════════
+           FEATURED PRODUCTS
+        ══════════════════════════════════════ */
         .products-row {
           display: flex; align-items: flex-end;
           justify-content: space-between; gap: 16px;
@@ -426,39 +372,59 @@ export default function Home() {
         }
         .view-all:hover { border-color: #40916c; background: #f0f7f3; }
 
-        /* ── The fixed grid — no overflow, no carousel ── */
+        /* Grid — equal columns, equal rows */
         .prod-grid {
           display: grid;
           gap: 20px;
-          grid-template-columns: 1fr;
-          /* Never allow horizontal scroll */
-          overflow: visible;
           width: 100%;
+          grid-template-columns: 1fr;
+          /* All cells the same height */
+          grid-auto-rows: 1fr;
+          align-items: stretch;
         }
         @media (min-width: 600px)  { .prod-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .prod-grid { grid-template-columns: repeat(4, 1fr); } }
 
-        .prod-card {
-          display: block; text-decoration: none;
-          background: #fff; border: 1px solid #e2ede8;
-          border-radius: 20px; overflow: hidden;
-          transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
-          /* Prevent cards from escaping the grid */
-          min-width: 0; width: 100%;
+        /* Wrapper that contains ScrollReveal + card — must fill the cell */
+        .prod-cell {
+          min-width: 0; width: 100%; height: 100%;
+          display: flex; flex-direction: column;
         }
-        .prod-card:hover { border-color: #b7e4c7; box-shadow: 0 16px 40px rgba(45,106,79,0.1); transform: translateY(-4px); }
+        /* ScrollReveal renders a div — make it fill too */
+        .prod-cell > div {
+          width: 100%; height: 100%;
+          display: flex; flex-direction: column;
+        }
 
+        /* The card itself */
+        .prod-card {
+          display: flex; flex-direction: column;
+          text-decoration: none; background: #fff;
+          border: 1px solid #e2ede8; border-radius: 20px;
+          overflow: hidden; width: 100%; min-width: 0;
+          /* Fill every cell identically */
+          height: 100%;
+          transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+        }
+        .prod-card:hover {
+          border-color: #b7e4c7;
+          box-shadow: 0 16px 40px rgba(45,106,79,0.1);
+          transform: translateY(-4px);
+        }
+
+        /* Fixed-height image — never affected by natural image size */
         .prod-img {
           position: relative;
-          /* Square crop so all cards are uniform height */
-          aspect-ratio: 1 / 1;
+          width: 100%;
+          height: 200px;
+          flex-shrink: 0;
           overflow: hidden;
           background: #f0f7f3;
-          width: 100%;
         }
         .prod-img img {
+          position: absolute; inset: 0;
           width: 100%; height: 100%;
-          object-fit: cover;
+          object-fit: cover; object-position: center;
           display: block;
           transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
         }
@@ -471,6 +437,7 @@ export default function Home() {
           background: rgba(10,28,18,0.72); color: #74c69d;
           padding: 4px 10px; border-radius: 8px;
           backdrop-filter: blur(8px);
+          white-space: nowrap;
         }
         .prod-stock-dot {
           position: absolute; top: 12px; right: 12px;
@@ -479,12 +446,15 @@ export default function Home() {
         .prod-stock-dot.in  { background: #74c69d; box-shadow: 0 0 0 3px rgba(116,198,157,0.25); }
         .prod-stock-dot.out { background: #f87171; box-shadow: 0 0 0 3px rgba(248,113,113,0.25); }
 
-        .prod-body { padding: 18px; }
+        /* Body grows to fill remaining height */
+        .prod-body {
+          padding: 18px; flex: 1;
+          display: flex; flex-direction: column;
+        }
         .prod-name {
           font-family: 'Playfair Display', serif;
           font-size: 16px; font-weight: 700; color: #0d2419;
           margin-bottom: 5px; line-height: 1.3;
-          /* Clamp to 2 lines so card heights stay consistent */
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
@@ -492,16 +462,19 @@ export default function Home() {
         }
         .prod-desc {
           font-size: 12.5px; color: #6b8c77;
-          line-height: 1.6; margin-bottom: 16px;
+          line-height: 1.6; flex: 1;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          margin-bottom: 16px;
         }
+        /* Footer always at the bottom of every card */
         .prod-foot {
           display: flex; align-items: center;
           justify-content: space-between;
           padding-top: 14px; border-top: 1px solid #f0f7f3;
+          margin-top: auto;
         }
         .prod-price {
           font-family: 'Playfair Display', serif;
@@ -515,10 +488,12 @@ export default function Home() {
         .prod-stock-label.in  { background: #d8f3dc; color: #1b4332; }
         .prod-stock-label.out { background: #fee2e2; color: #991b1b; }
 
-        /* ── CTA ───────────────────────────────────── */
+        /* ══════════════════════════════════════
+           CTA
+        ══════════════════════════════════════ */
         .cta-wrap {
-          background: #0d2419;
-          position: relative; overflow: hidden; padding: 100px 0;
+          background: #0d2419; position: relative;
+          overflow: hidden; padding: 100px 0;
         }
         .cta-noise {
           position: absolute; inset: 0;
@@ -551,14 +526,15 @@ export default function Home() {
         .cta-h2 {
           font-family: 'Playfair Display', serif;
           font-size: clamp(30px, 5vw, 52px); font-weight: 700;
-          color: #fff; margin-bottom: 18px;
-          line-height: 1.08; letter-spacing: -1px;
+          color: #fff; margin-bottom: 18px; line-height: 1.08; letter-spacing: -1px;
         }
         .cta-h2 em { font-style: italic; color: #74c69d; }
         .cta-p { font-size: 15px; color: rgba(255,255,255,0.5); margin-bottom: 44px; line-height: 1.75; }
         .cta-btns { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
 
-        /* ── MODAL ─────────────────────────────────── */
+        /* ══════════════════════════════════════
+           MODAL
+        ══════════════════════════════════════ */
         .modal-bg {
           position: fixed; inset: 0;
           background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
@@ -566,6 +542,7 @@ export default function Home() {
           align-items: flex-end; justify-content: center;
         }
         @media (min-width: 600px) { .modal-bg { align-items: center; padding: 24px; } }
+
         .modal-card {
           background: #fff; width: 100%; max-width: 460px;
           border-radius: 28px 28px 0 0;
@@ -573,11 +550,13 @@ export default function Home() {
           box-shadow: 0 -8px 64px rgba(0,0,0,0.2);
         }
         @media (min-width: 600px) { .modal-card { border-radius: 28px; padding: 44px; } }
+
         .modal-handle {
           width: 40px; height: 4px; background: #e2ede8;
           border-radius: 2px; margin: 0 auto 28px;
         }
         @media (min-width: 600px) { .modal-handle { display: none; } }
+
         .modal-close {
           position: absolute; top: 20px; right: 20px;
           width: 34px; height: 34px; background: #f0f7f3;
@@ -592,6 +571,7 @@ export default function Home() {
           margin-bottom: 6px; letter-spacing: -0.4px;
         }
         .modal-sub { font-size: 13.5px; color: #6b8c77; margin-bottom: 32px; line-height: 1.6; }
+
         .contact-list { display: flex; flex-direction: column; gap: 12px; }
         .contact-row {
           display: flex; align-items: flex-start; gap: 14px;
@@ -603,17 +583,22 @@ export default function Home() {
         .contact-icon {
           width: 40px; height: 40px; flex-shrink: 0;
           background: #fff; border: 1px solid #e2ede8;
-          border-radius: 12px; display: flex; align-items: center; justify-content: center;
-          color: #40916c;
+          border-radius: 12px; display: flex; align-items: center;
+          justify-content: center; color: #40916c;
         }
-        .contact-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #6b8c77; margin-bottom: 4px; }
+        .contact-label {
+          font-size: 10px; font-weight: 700;
+          letter-spacing: 1.5px; text-transform: uppercase;
+          color: #6b8c77; margin-bottom: 4px;
+        }
         .contact-value { font-size: 13.5px; color: #0d2419; font-weight: 500; }
         .contact-value a { color: #0d2419; text-decoration: none; }
         .contact-value a:hover { color: #40916c; }
         .maps-link {
           display: inline-flex; align-items: center; gap: 4px;
           font-size: 12px; font-weight: 600; color: #40916c;
-          background: none; border: none; font-family: 'DM Sans', sans-serif;
+          background: none; border: none;
+          font-family: 'DM Sans', sans-serif;
           cursor: pointer; padding: 0; margin-top: 5px; transition: color 0.15s;
         }
         .maps-link:hover { color: #2d6a4f; }
@@ -623,7 +608,8 @@ export default function Home() {
           color: #fff; font-family: 'DM Sans', sans-serif;
           font-size: 14px; font-weight: 600;
           border: none; border-radius: 14px; cursor: pointer;
-          transition: all 0.2s ease; box-shadow: 0 4px 16px rgba(45,106,79,0.3);
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 16px rgba(45,106,79,0.3);
         }
         .modal-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(45,106,79,0.4); }
       `}</style>
@@ -637,13 +623,17 @@ export default function Home() {
           onMouseLeave={() => setIsPaused(false)}
         >
           <div className="hero-accent" />
+
           {heroImages.map((img, i) => (
             <motion.div
               key={img}
               className="hero-slide"
               style={{ backgroundImage: `url(${img})` }}
               initial={{ opacity: 0 }}
-              animate={{ opacity: currentImageIndex === i ? 1 : 0, scale: currentImageIndex === i ? 1 : 1.04 }}
+              animate={{
+                opacity: currentImageIndex === i ? 1 : 0,
+                scale:   currentImageIndex === i ? 1 : 1.04,
+              }}
               transition={{ duration: 1.4, ease: 'easeInOut' }}
             />
           ))}
@@ -657,30 +647,51 @@ export default function Home() {
           </button>
 
           <div className="hero-content">
-            <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.1, ease: [0.16,1,0.3,1] }}>
+            <motion.div
+              initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.1, ease: [0.16,1,0.3,1] }}
+            >
               <div className="hero-eyebrow">
                 <div className="hero-eyebrow-dot" />
                 Limuru, Kenya
               </div>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.22, ease: [0.16,1,0.3,1] }}>
+
+            <motion.div
+              initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.22, ease: [0.16,1,0.3,1] }}
+            >
               <h1 className="hero-title" ref={typedRef} />
               <p className="hero-title-italic">Quality Farm Feeds & Fresh Produce</p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.38, ease: [0.16,1,0.3,1] }}>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.38, ease: [0.16,1,0.3,1] }}
+            >
               <p className="hero-desc">
                 Premium animal feed solutions and farm-fresh products grown with care for your livestock and family.
               </p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.52, ease: [0.16,1,0.3,1] }}>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.52, ease: [0.16,1,0.3,1] }}
+            >
               <div className="hero-actions">
-                <Link to="/shop" className="btn-primary"><Store size={15} />Shop Now</Link>
-                <button className="btn-ghost" onClick={() => setShowContact(true)}><Phone size={15} />Contact Us</button>
+                <Link to="/shop" className="btn-primary">
+                  <Store size={15} /> Shop Now
+                </Link>
+                <button className="btn-ghost" onClick={() => setShowContact(true)}>
+                  <Phone size={15} /> Contact Us
+                </button>
               </div>
             </motion.div>
           </div>
 
-          <div className="hero-scroll"><div className="scroll-line" /></div>
+          <div className="hero-scroll">
+            <div className="scroll-line" />
+          </div>
 
           <div className="carousel-dots">
             {heroImages.map((_, i) => (
@@ -694,9 +705,15 @@ export default function Home() {
           </div>
 
           <div className="hero-bar">
-            <button className="hero-bar-item" onClick={openGoogleMaps}><MapPin size={13} />Limuru, Kiambu</button>
-            <a href="tel:+254722395370" className="hero-bar-item"><Phone size={13} />+254 722 395 370</a>
-            <a href="mailto:info@penchicfarm.com" className="hero-bar-item"><Mail size={13} />info@penchicfarm.com</a>
+            <button className="hero-bar-item" onClick={openGoogleMaps}>
+              <MapPin size={13} /> Limuru, Kiambu
+            </button>
+            <a href="tel:+254722395370" className="hero-bar-item">
+              <Phone size={13} /> +254 722 395 370
+            </a>
+            <a href="mailto:info@penchicfarm.com" className="hero-bar-item">
+              <Mail size={13} /> info@penchicfarm.com
+            </a>
           </div>
         </section>
 
@@ -720,8 +737,11 @@ export default function Home() {
             <ScrollReveal>
               <div className="section-tag"><div className="tag-bar" />What we offer</div>
               <h2 className="section-h2">Feed solutions for<br />every animal</h2>
-              <p className="section-sub">Carefully formulated nutrition for all your livestock needs, sourced and packed fresh.</p>
+              <p className="section-sub">
+                Carefully formulated nutrition for all your livestock needs, sourced and packed fresh.
+              </p>
             </ScrollReveal>
+
             <div className="cat-grid">
               {categories.map((cat, i) => (
                 <ScrollReveal key={cat.title} direction={i % 2 === 0 ? 'left' : 'right'} delay={i * 0.1}>
@@ -755,33 +775,37 @@ export default function Home() {
                     <h2 className="section-h2">Featured products</h2>
                   </div>
                 </ScrollReveal>
-                <Link to="/shop" className="view-all">View all <ArrowRight size={13} /></Link>
+                <Link to="/shop" className="view-all">
+                  View all <ArrowRight size={13} />
+                </Link>
               </div>
 
-              {/* Clean grid — no wrapper div that could cause overflow */}
               <div className="prod-grid">
                 {featuredProducts.map((p, i) => (
-                  <ScrollReveal key={p.id} delay={i * 0.07}>
-                    <Link to={`/product/${p.id}`} className="prod-card">
-                      <div className="prod-img">
-                        <img src={p.image_url} alt={p.name} loading="lazy" />
-                        {p.category && (
-                          <span className="prod-cat-badge">{p.category}</span>
-                        )}
-                        <span className={`prod-stock-dot ${p.stock > 0 ? 'in' : 'out'}`} />
-                      </div>
-                      <div className="prod-body">
-                        <h3 className="prod-name">{p.name}</h3>
-                        <p className="prod-desc">{p.description}</p>
-                        <div className="prod-foot">
-                          <span className="prod-price">KES {p.price.toLocaleString()}</span>
-                          <span className={`prod-stock-label ${p.stock > 0 ? 'in' : 'out'}`}>
-                            {p.stock > 0 ? 'In stock' : 'Out of stock'}
-                          </span>
+                  // prod-cell constrains the ScrollReveal wrapper + card to the grid column
+                  <div key={p.id} className="prod-cell">
+                    <ScrollReveal delay={i * 0.07}>
+                      <Link to={`/product/${p.id}`} className="prod-card">
+                        <div className="prod-img">
+                          <img src={p.image_url} alt={p.name} loading="lazy" />
+                          {p.category && (
+                            <span className="prod-cat-badge">{p.category}</span>
+                          )}
+                          <span className={`prod-stock-dot ${p.stock > 0 ? 'in' : 'out'}`} />
                         </div>
-                      </div>
-                    </Link>
-                  </ScrollReveal>
+                        <div className="prod-body">
+                          <h3 className="prod-name">{p.name}</h3>
+                          <p className="prod-desc">{p.description}</p>
+                          <div className="prod-foot">
+                            <span className="prod-price">KES {p.price.toLocaleString()}</span>
+                            <span className={`prod-stock-label ${p.stock > 0 ? 'in' : 'out'}`}>
+                              {p.stock > 0 ? 'In stock' : 'Out of stock'}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    </ScrollReveal>
+                  </div>
                 ))}
               </div>
             </div>
@@ -795,11 +819,17 @@ export default function Home() {
           <div className="cta-inner">
             <ScrollReveal>
               <div className="cta-eyebrow"><Sprout size={11} />Grown with care</div>
-              <h2 className="cta-h2">Ready to improve your<br /><em>farm's productivity?</em></h2>
-              <p className="cta-p">Visit our store or reach out to learn more about our premium feed products and farm-fresh produce.</p>
+              <h2 className="cta-h2">
+                Ready to improve your<br /><em>farm's productivity?</em>
+              </h2>
+              <p className="cta-p">
+                Visit our store or reach out to learn more about our premium feed products and farm-fresh produce.
+              </p>
               <div className="cta-btns">
                 <Link to="/shop" className="btn-primary"><Store size={15} />Visit Store</Link>
-                <button className="btn-ghost" onClick={() => setShowContact(true)}><Phone size={15} />Contact Us</button>
+                <button className="btn-ghost" onClick={() => setShowContact(true)}>
+                  <Phone size={15} />Contact Us
+                </button>
               </div>
             </ScrollReveal>
           </div>
@@ -815,19 +845,26 @@ export default function Home() {
             >
               <motion.div
                 className="modal-card"
-                initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 40 }}
                 transition={{ duration: 0.26, ease: [0.16,1,0.3,1] }}
               >
                 <div className="modal-handle" />
-                <button className="modal-close" onClick={() => setShowContact(false)}><X size={14} /></button>
+                <button className="modal-close" onClick={() => setShowContact(false)}>
+                  <X size={14} />
+                </button>
                 <h2 className="modal-h2">Get in touch</h2>
                 <p className="modal-sub">We'd love to hear from you. Reach us any way you prefer.</p>
+
                 <div className="contact-list">
                   <div className="contact-row">
                     <div className="contact-icon"><Mail size={16} /></div>
                     <div>
                       <div className="contact-label">Email</div>
-                      <div className="contact-value"><a href="mailto:info@penchicfarm.com">info@penchicfarm.com</a></div>
+                      <div className="contact-value">
+                        <a href="mailto:info@penchicfarm.com">info@penchicfarm.com</a>
+                      </div>
                     </div>
                   </div>
                   <div className="contact-row">
@@ -851,11 +888,13 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+
                 <button className="modal-cta" onClick={() => setShowContact(false)}>Done</button>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
+
       </div>
     </>
   );
