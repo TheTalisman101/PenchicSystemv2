@@ -4,8 +4,8 @@ import { useStore } from '../../store';
 import { supabase } from '../../lib/supabase';
 import {
   Search, ShoppingCart, Trash2, Plus, Minus,
-  CreditCard, Smartphone, Banknote, Package, User,
-  LogOut, X, Maximize, Minimize, Menu, CheckCircle2, AlertCircle,
+  CreditCard, Smartphone, Banknote, Package,
+  LogOut, X, Maximize, Minimize, CheckCircle2, AlertCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DiscountCalculator from '../../components/pos/DiscountCalculator';
@@ -78,7 +78,9 @@ const CartPanel = memo(({
                 className="bg-neutral-50 rounded-xl p-3 border border-neutral-100"
               >
                 <div className="flex justify-between items-start mb-2 gap-2">
-                  <h3 className="font-medium text-neutral-900 text-sm leading-snug flex-1">{item.product.name}</h3>
+                  <h3 className="font-medium text-neutral-900 text-sm leading-snug flex-1">
+                    {item.product.name}
+                  </h3>
                   <button
                     onClick={() => onRemoveFromCart(item.product.id, item.variant?.id)}
                     className="p-1 text-neutral-400 hover:text-red-500 transition-colors touch-manipulation flex-shrink-0"
@@ -91,8 +93,9 @@ const CartPanel = memo(({
                     <button
                       onClick={() => onUpdateQuantity(item.product.id, item.variant?.id, -1)}
                       disabled={item.quantity <= 1}
-                      className="w-7 h-7 flex items-center justify-center bg-white border border-neutral-200 rounded-lg
-                        hover:bg-neutral-100 active:bg-neutral-200 transition-colors touch-manipulation disabled:opacity-40"
+                      className="w-7 h-7 flex items-center justify-center bg-white border border-neutral-200
+                        rounded-lg hover:bg-neutral-100 active:bg-neutral-200 transition-colors
+                        touch-manipulation disabled:opacity-40"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
@@ -100,8 +103,9 @@ const CartPanel = memo(({
                     <button
                       onClick={() => onUpdateQuantity(item.product.id, item.variant?.id, 1)}
                       disabled={item.quantity >= item.product.stock}
-                      className="w-7 h-7 flex items-center justify-center bg-white border border-neutral-200 rounded-lg
-                        hover:bg-neutral-100 active:bg-neutral-200 transition-colors touch-manipulation disabled:opacity-40"
+                      className="w-7 h-7 flex items-center justify-center bg-white border border-neutral-200
+                        rounded-lg hover:bg-neutral-100 active:bg-neutral-200 transition-colors
+                        touch-manipulation disabled:opacity-40"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -139,7 +143,7 @@ const CartPanel = memo(({
       <button
         onClick={onCheckout}
         disabled={cart.length === 0}
-        className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 active:bg-neutral-950 text-white rounded-xl
+        className="w-full py-3.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white rounded-xl
           transition-colors disabled:opacity-40 disabled:cursor-not-allowed
           flex items-center justify-center gap-2 font-semibold touch-manipulation text-sm"
       >
@@ -152,42 +156,39 @@ const CartPanel = memo(({
 CartPanel.displayName = 'CartPanel';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-const QUICK_CASH_DENOMINATORS = [50, 100, 200, 500, 1000, 2000, 5000];
+const QUICK_DENOMINATORS = [50, 100, 200, 500, 1000, 2000, 5000];
 
-/** Round up to nearest denomination ≥ total */
 const quickAmounts = (total: number): number[] => {
-  const exact = total;
-  const rounded = QUICK_CASH_DENOMINATORS
+  const rounded = QUICK_DENOMINATORS
     .map(d => Math.ceil(total / d) * d)
     .filter(v => v >= total);
-  return [...new Set([exact, ...rounded])].slice(0, 5);
+  return [...new Set([total, ...rounded])].slice(0, 5);
 };
 
 // ── Main POSInterface ─────────────────────────────────────────────────────────
 const POSInterface = () => {
-  const navigate   = useNavigate();
-  const user       = useStore(s => s.user);
-  const cart       = useStore(s => s.cart);
-  const addToCart  = useStore(s => s.addToCart);
-  const removeFromCart    = useStore(s => s.removeFromCart);
-  const updateCartQuantity= useStore(s => s.updateCartQuantity);
-  const clearCart  = useStore(s => s.clearCart);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const navigate            = useNavigate();
+  const user                = useStore(s => s.user);
+  const cart                = useStore(s => s.cart);
+  const addToCart           = useStore(s => s.addToCart);
+  const removeFromCart      = useStore(s => s.removeFromCart);
+  const updateCartQuantity  = useStore(s => s.updateCartQuantity);
+  const clearCart           = useStore(s => s.clearCart);
+  const containerRef        = useRef<HTMLDivElement>(null);
 
-  const [products,          setProducts]          = useState<Product[]>([]);
-  const [loading,           setLoading]           = useState(true);
-  const [searchTerm,        setSearchTerm]        = useState('');
-  const [categoryFilter,    setCategoryFilter]    = useState('all');
-  const [showCheckout,      setShowCheckout]      = useState(false);
-  const [paymentMethod,     setPaymentMethod]     = useState<'cash' | 'mpesa' | 'card'>('cash');
-  const [processing,        setProcessing]        = useState(false);
-  const [appliedDiscounts,  setAppliedDiscounts]  = useState<any[]>([]);
-  const [showMobileCart,    setShowMobileCart]    = useState(false);
-  const [isFullscreen,      setIsFullscreen]      = useState(false);
-  const [completedOrder,    setCompletedOrder]    = useState<any>(null);
-  const [showReceipt,       setShowReceipt]       = useState(false);
+  const [products,         setProducts]         = useState<Product[]>([]);
+  const [loading,          setLoading]          = useState(true);
+  const [searchTerm,       setSearchTerm]       = useState('');
+  const [categoryFilter,   setCategoryFilter]   = useState('all');
+  const [showCheckout,     setShowCheckout]     = useState(false);
+  const [paymentMethod,    setPaymentMethod]    = useState<'cash' | 'mpesa' | 'card'>('cash');
+  const [processing,       setProcessing]       = useState(false);
+  const [appliedDiscounts, setAppliedDiscounts] = useState<any[]>([]);
+  const [showMobileCart,   setShowMobileCart]   = useState(false);
+  const [isFullscreen,     setIsFullscreen]     = useState(false);
+  const [completedOrder,   setCompletedOrder]   = useState<any>(null);
+  const [showReceipt,      setShowReceipt]      = useState(false);
 
-  // Payment-specific state
   const [mpesaPhone,   setMpesaPhone]   = useState('');
   const [phoneError,   setPhoneError]   = useState('');
   const [cashTendered, setCashTendered] = useState('');
@@ -218,10 +219,9 @@ const POSInterface = () => {
         discount: discounts?.find(d => d.product_id === p.id) || null,
       })));
     } catch (err) { console.error('Error fetching products:', err); }
-    finally      { setLoading(false); }
+    finally { setLoading(false); }
   };
 
-  // ── Stable callbacks ───────────────────────────────────────────────────────
   const handleAddToCart = useCallback((product: Product) => {
     if (product.stock <= 0) { alert('Product out of stock'); return; }
     const existing = cart.find(i => i.product.id === product.id);
@@ -232,12 +232,12 @@ const POSInterface = () => {
     setShowMobileCart(true);
   }, [cart, addToCart]);
 
-  const handleDiscountApplied  = useCallback((d: any[]) => setAppliedDiscounts(d), []);
-  const handleRemoveFromCart   = useCallback((pid: string, vid?: string) => removeFromCart(pid, vid), [removeFromCart]);
-  const handleUpdateQuantity   = useCallback((pid: string, vid: string | undefined, delta: number) => updateCartQuantity(pid, vid, delta), [updateCartQuantity]);
-  const handleClearCart        = useCallback(() => clearCart(), [clearCart]);
-  const handleOpenCheckout     = useCallback(() => setShowCheckout(true), []);
-  const handleCloseMobileCart  = useCallback(() => setShowMobileCart(false), []);
+  const handleDiscountApplied = useCallback((d: any[]) => setAppliedDiscounts(d), []);
+  const handleRemoveFromCart  = useCallback((pid: string, vid?: string) => removeFromCart(pid, vid), [removeFromCart]);
+  const handleUpdateQuantity  = useCallback((pid: string, vid: string | undefined, delta: number) => updateCartQuantity(pid, vid, delta), [updateCartQuantity]);
+  const handleClearCart       = useCallback(() => clearCart(), [clearCart]);
+  const handleOpenCheckout    = useCallback(() => setShowCheckout(true), []);
+  const handleCloseMobileCart = useCallback(() => setShowMobileCart(false), []);
 
   const calcSubtotal      = useCallback(() => cart.reduce((s, i) => s + i.product.price * i.quantity, 0), [cart]);
   const calcDiscountTotal = useCallback(() => appliedDiscounts.reduce((s, d) => s + d.savings, 0), [appliedDiscounts]);
@@ -248,8 +248,8 @@ const POSInterface = () => {
     else await document.exitFullscreen().catch(console.error);
   }, []);
 
-  const validatePhone  = (p: string) => /^(254|0)?[17]\d{8}$/.test(p.replace(/\s/g, ''));
-  const formatPhone    = (p: string) => {
+  const validatePhone = (p: string) => /^(254|0)?[17]\d{8}$/.test(p.replace(/\s/g, ''));
+  const formatPhone   = (p: string) => {
     let c = p.replace(/\s/g, '');
     if (c.startsWith('0'))    c = '254' + c.slice(1);
     if (c.startsWith('+254')) c = c.slice(1);
@@ -263,7 +263,6 @@ const POSInterface = () => {
     setCashError('');  setCashTendered('');
   }, []);
 
-  // Derived cash values
   const subtotal      = calcSubtotal();
   const discountTotal = calcDiscountTotal();
   const total         = calcTotal();
@@ -280,7 +279,6 @@ const POSInterface = () => {
   const handleCheckout = async () => {
     if (cart.length === 0) { alert('Cart is empty'); return; }
 
-    // Validate per payment method
     if (paymentMethod === 'mpesa') {
       if (!mpesaPhone.trim()) { setPhoneError('Phone number required for M-Pesa'); return; }
       if (!validatePhone(mpesaPhone)) { setPhoneError('Invalid number. Use: 0712345678 or 254712345678'); return; }
@@ -361,17 +359,13 @@ const POSInterface = () => {
       });
 
       setCompletedOrder({
-        orderId: order.id,
-        items: receiptItems,
-        subtotal,
-        discount: discountTotal,
-        total,
-        paymentMethod,
+        orderId: order.id, items: receiptItems, subtotal,
+        discount: discountTotal, total, paymentMethod,
         cashierEmail: user?.email || '',
         cashierName: (user as any)?.name || (user as any)?.full_name || undefined,
         date: new Date(),
-        cashTendered: paymentMethod === 'cash' ? cashNum : undefined,
-        change:       paymentMethod === 'cash' ? cashChange : undefined,
+        cashTendered: paymentMethod === 'cash' ? cashNum     : undefined,
+        change:       paymentMethod === 'cash' ? cashChange  : undefined,
       });
 
       clearCart();
@@ -394,13 +388,12 @@ const POSInterface = () => {
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
     (categoryFilter === 'all' || p.category === categoryFilter)
   );
-
   const cashQuickAmounts = quickAmounts(total);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-2 border-neutral-300 border-t-green-600 rounded-full animate-spin" />
       </div>
     );
   }
@@ -416,7 +409,7 @@ const POSInterface = () => {
     <div ref={containerRef} className="min-h-screen bg-neutral-50">
       <div className="flex h-screen overflow-hidden">
 
-        {/* ── Product grid column ─────────────────────────────────────────── */}
+        {/* ── Product grid column ───────────────────────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
           {/* Header */}
@@ -432,7 +425,9 @@ const POSInterface = () => {
                   className="p-2 rounded-lg bg-neutral-100 hover:bg-neutral-200 transition-colors touch-manipulation"
                   title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
                 >
-                  {isFullscreen ? <Minimize className="w-4 h-4 text-neutral-600" /> : <Maximize className="w-4 h-4 text-neutral-600" />}
+                  {isFullscreen
+                    ? <Minimize className="w-4 h-4 text-neutral-600" />
+                    : <Maximize className="w-4 h-4 text-neutral-600" />}
                 </button>
                 <button
                   onClick={() => navigate('/admin/dashboard')}
@@ -445,7 +440,6 @@ const POSInterface = () => {
               </div>
             </div>
 
-            {/* Search + filter + mobile cart toggle */}
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
@@ -456,26 +450,28 @@ const POSInterface = () => {
                   onChange={e => setSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm
                     text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2
-                    focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all"
+                    focus:ring-green-600/[0.12] focus:border-green-400 transition-all"
                 />
               </div>
               <select
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
                 className="px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm
-                  text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06]
-                  focus:border-neutral-300 transition-all min-w-0 max-w-[120px]"
+                  text-neutral-700 focus:outline-none focus:ring-2 focus:ring-green-600/[0.12]
+                  focus:border-green-400 transition-all min-w-0 max-w-[120px]"
               >
                 {categories.map(c => (
-                  <option key={c} value={c}>{c === 'all' ? 'All' : c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                  <option key={c} value={c}>
+                    {c === 'all' ? 'All' : c.charAt(0).toUpperCase() + c.slice(1)}
+                  </option>
                 ))}
               </select>
 
               {/* Mobile cart button */}
               <button
                 onClick={() => setShowMobileCart(true)}
-                className="lg:hidden relative flex items-center justify-center w-11 h-11 bg-neutral-900
-                  text-white rounded-xl touch-manipulation flex-shrink-0"
+                className="lg:hidden relative flex items-center justify-center w-11 h-11 bg-green-600
+                  hover:bg-green-700 text-white rounded-xl touch-manipulation flex-shrink-0 transition-colors"
               >
                 <ShoppingCart className="w-5 h-5" />
                 {cart.length > 0 && (
@@ -491,9 +487,9 @@ const POSInterface = () => {
           {/* Product grid */}
           <div className="flex-1 overflow-auto p-3 lg:p-4">
             {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-3">
                 {filteredProducts.map(product => {
-                  const hasDiscount    = !!product.discount;
+                  const hasDiscount     = !!product.discount;
                   const discountedPrice = hasDiscount
                     ? product.price - (product.price * product.discount.percentage / 100)
                     : product.price;
@@ -503,7 +499,7 @@ const POSInterface = () => {
                       whileTap={{ scale: 0.96 }}
                       onClick={() => handleAddToCart(product)}
                       className="bg-white rounded-xl border border-neutral-200 p-3 text-left relative
-                        hover:border-neutral-300 hover:shadow-md transition-all touch-manipulation active:bg-neutral-50"
+                        hover:border-green-300 hover:shadow-md transition-all touch-manipulation active:bg-neutral-50"
                     >
                       {hasDiscount && (
                         <div className="absolute top-2 right-2 z-10 bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[10px] font-bold">
@@ -521,11 +517,17 @@ const POSInterface = () => {
                       </h3>
                       {hasDiscount ? (
                         <div>
-                          <p className="text-neutral-400 line-through text-[10px]">KES {product.price.toLocaleString()}</p>
-                          <p className="font-bold text-sm text-neutral-900">KES {Math.round(discountedPrice).toLocaleString()}</p>
+                          <p className="text-neutral-400 line-through text-[10px]">
+                            KES {product.price.toLocaleString()}
+                          </p>
+                          <p className="font-bold text-sm text-green-700">
+                            KES {Math.round(discountedPrice).toLocaleString()}
+                          </p>
                         </div>
                       ) : (
-                        <p className="font-bold text-sm text-neutral-900">KES {product.price.toLocaleString()}</p>
+                        <p className="font-bold text-sm text-neutral-900">
+                          KES {product.price.toLocaleString()}
+                        </p>
                       )}
                       <p className="text-[10px] text-neutral-400 mt-0.5">Stock: {product.stock}</p>
                     </motion.button>
@@ -544,29 +546,31 @@ const POSInterface = () => {
           </div>
         </div>
 
-        {/* ── Desktop cart ─────────────────────────────────────────────────── */}
+        {/* ── Desktop cart ──────────────────────────────────────────────── */}
         <div className="hidden lg:block w-80 xl:w-96 border-l border-neutral-200 flex-shrink-0">
           <CartPanel {...cartPanelProps} />
         </div>
       </div>
 
-      {/* ── Mobile cart FAB ──────────────────────────────────────────────────── */}
+      {/* ── Mobile cart FAB ───────────────────────────────────────────────── */}
       <AnimatePresence>
         {cart.length > 0 && !showMobileCart && (
           <motion.button
-            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
             onClick={() => setShowMobileCart(true)}
-            className="lg:hidden fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-3 bg-neutral-900
-              text-white rounded-full shadow-xl touch-manipulation"
+            className="lg:hidden fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-3
+              bg-green-600 hover:bg-green-700 text-white rounded-full shadow-xl touch-manipulation transition-colors"
           >
             <ShoppingCart className="w-5 h-5" />
             <span className="font-semibold text-sm">{cart.length} items</span>
-            <span className="text-neutral-400 text-sm">· KES {total.toLocaleString()}</span>
+            <span className="text-green-200 text-sm">· KES {total.toLocaleString()}</span>
           </motion.button>
         )}
       </AnimatePresence>
 
-      {/* ── Mobile cart drawer ────────────────────────────────────────────────── */}
+      {/* ── Mobile cart drawer ─────────────────────────────────────────────── */}
       <AnimatePresence>
         {showMobileCart && (
           <>
@@ -586,7 +590,7 @@ const POSInterface = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Checkout modal (bottom sheet on mobile, centered on desktop) ──────── */}
+      {/* ── Checkout modal (bottom sheet on mobile) ────────────────────────── */}
       <AnimatePresence>
         {showCheckout && (
           <motion.div
@@ -598,10 +602,10 @@ const POSInterface = () => {
               animate={{ y: 0,      opacity: 1 }}
               exit={{    y: '100%', opacity: 0 }}
               transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-              className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[95vh] sm:max-h-[90vh]
-                overflow-y-auto shadow-2xl"
+              className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md
+                max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl"
             >
-              {/* Drag handle (mobile) */}
+              {/* Drag handle */}
               <div className="sm:hidden flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 bg-neutral-300 rounded-full" />
               </div>
@@ -649,10 +653,11 @@ const POSInterface = () => {
                         <button
                           key={method}
                           onClick={() => handlePaymentMethodChange(method)}
-                          className={`flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-xl border-2 transition-all touch-manipulation ${
+                          className={`flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-xl border-2
+                            transition-all touch-manipulation ${
                             active
-                              ? 'border-neutral-900 bg-neutral-900 text-white'
-                              : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400'
+                              ? 'border-green-600 bg-green-600 text-white'
+                              : 'border-neutral-200 bg-white text-neutral-600 hover:border-green-400'
                           }`}
                         >
                           <Icon className="w-5 h-5" />
@@ -663,7 +668,7 @@ const POSInterface = () => {
                   </div>
                 </div>
 
-                {/* ── Cash payment ─────────────────────────────────────────── */}
+                {/* ── Cash payment ──────────────────────────────────────── */}
                 <AnimatePresence>
                   {paymentMethod === 'cash' && (
                     <motion.div
@@ -686,7 +691,7 @@ const POSInterface = () => {
                             onChange={e => { setCashTendered(e.target.value); setCashError(''); }}
                             className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl text-neutral-900
                               text-xl font-bold tabular-nums focus:outline-none focus:ring-2
-                              focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all ${
+                              focus:ring-green-600/[0.12] focus:border-green-400 transition-all ${
                               cashError ? 'border-red-400 bg-red-50' : 'border-neutral-200'
                             }`}
                           />
@@ -706,10 +711,11 @@ const POSInterface = () => {
                               <button
                                 key={amount}
                                 onClick={() => { setCashTendered(String(amount)); setCashError(''); }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all touch-manipulation ${
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border
+                                  transition-all touch-manipulation ${
                                   cashNum === amount
-                                    ? 'bg-neutral-900 text-white border-neutral-900'
-                                    : 'bg-white text-neutral-700 border-neutral-200 hover:border-neutral-400'
+                                    ? 'bg-green-600 text-white border-green-600'
+                                    : 'bg-white text-neutral-700 border-neutral-200 hover:border-green-400'
                                 }`}
                               >
                                 {amount === total ? 'Exact' : `KES ${amount.toLocaleString()}`}
@@ -732,10 +738,14 @@ const POSInterface = () => {
                               }`}
                             >
                               <div>
-                                <p className={`text-[11px] font-bold uppercase tracking-wider ${cashOk ? 'text-emerald-600' : 'text-red-600'}`}>
+                                <p className={`text-[11px] font-bold uppercase tracking-wider ${
+                                  cashOk ? 'text-emerald-600' : 'text-red-600'
+                                }`}>
                                   {cashOk ? 'Change Due' : 'Insufficient'}
                                 </p>
-                                <p className={`text-2xl font-bold tabular-nums mt-0.5 ${cashOk ? 'text-emerald-700' : 'text-red-700'}`}>
+                                <p className={`text-2xl font-bold tabular-nums mt-0.5 ${
+                                  cashOk ? 'text-emerald-700' : 'text-red-700'
+                                }`}>
                                   {cashOk
                                     ? `KES ${cashChange.toLocaleString()}`
                                     : `-KES ${(total - cashNum).toLocaleString()}`
@@ -755,7 +765,7 @@ const POSInterface = () => {
                   )}
                 </AnimatePresence>
 
-                {/* ── M-Pesa phone ─────────────────────────────────────────── */}
+                {/* ── M-Pesa phone ──────────────────────────────────────── */}
                 <AnimatePresence>
                   {paymentMethod === 'mpesa' && (
                     <motion.div
@@ -776,15 +786,16 @@ const POSInterface = () => {
                           value={mpesaPhone}
                           onChange={e => { setMpesaPhone(e.target.value); setPhoneError(''); }}
                           className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl text-neutral-900
-                            focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06]
-                            focus:border-neutral-300 transition-all text-sm ${
+                            focus:outline-none focus:ring-2 focus:ring-green-600/[0.12]
+                            focus:border-green-400 transition-all text-sm ${
                             phoneError ? 'border-red-400 bg-red-50' : 'border-neutral-200'
                           }`}
                           maxLength={12}
                         />
                         {phoneError && (
                           <p className="mt-1.5 flex items-center gap-1 text-xs text-red-600 font-medium">
-                            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {phoneError}
+                            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                            {phoneError}
                           </p>
                         )}
                         <p className="mt-1.5 text-[11px] text-neutral-400">
@@ -806,8 +817,8 @@ const POSInterface = () => {
                   </button>
                   <button
                     onClick={handleCheckout}
-                    disabled={processing || (paymentMethod === 'cash' && !cashOk && cashNum > 0)}
-                    className="flex-1 py-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl
+                    disabled={processing || (paymentMethod === 'cash' && cashNum > 0 && !cashOk)}
+                    className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl
                       font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                       touch-manipulation text-sm"
                   >
@@ -820,7 +831,7 @@ const POSInterface = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Receipt modal (bottom sheet on mobile) ────────────────────────────── */}
+      {/* ── Receipt modal (bottom sheet on mobile) ─────────────────────────── */}
       <AnimatePresence>
         {showReceipt && completedOrder && (
           <motion.div
@@ -832,7 +843,8 @@ const POSInterface = () => {
               animate={{ y: 0,      opacity: 1 }}
               exit={{    y: '100%', opacity: 0 }}
               transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-              className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl"
+              className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md
+                max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl"
             >
               <div className="sm:hidden flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 bg-neutral-300 rounded-full" />
@@ -859,7 +871,7 @@ const POSInterface = () => {
                     <p className="text-2xl font-bold text-emerald-800 tabular-nums">
                       KES {completedOrder.total.toLocaleString()}
                     </p>
-                    {completedOrder.paymentMethod === 'cash' && completedOrder.change > 0 && (
+                    {completedOrder.paymentMethod === 'cash' && (completedOrder.change ?? 0) > 0 && (
                       <p className="text-sm text-emerald-700 mt-0.5">
                         Change: <span className="font-bold">KES {completedOrder.change.toLocaleString()}</span>
                       </p>
