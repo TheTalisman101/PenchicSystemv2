@@ -79,7 +79,6 @@ export default function Home() {
     return () => typed.destroy();
   }, []);
 
-  /* ── Auto-advance every 3 s ── */
   useEffect(() => {
     if (isPaused) return;
     const id = setInterval(() => {
@@ -125,7 +124,7 @@ export default function Home() {
            HERO
         ══════════════════════════════════════ */
         .hero {
-          position: relative; height: 100svh; min-height: 620px;
+          position: relative; height: 100svh; min-height: 580px;
           overflow: hidden; display: grid; place-items: center;
         }
         .hero-slide {
@@ -169,16 +168,16 @@ export default function Home() {
         }
         .hero-title {
           font-family: 'Playfair Display', serif;
-          font-size: clamp(48px, 9vw, 96px); font-weight: 700;
+          font-size: clamp(42px, 9vw, 96px); font-weight: 700;
           color: #fff; line-height: 0.95; margin: 0 0 6px; letter-spacing: -2px;
         }
         .hero-title-italic {
           font-family: 'Playfair Display', serif;
-          font-size: clamp(20px, 3.5vw, 32px); font-weight: 600; font-style: italic;
+          font-size: clamp(17px, 3.5vw, 32px); font-weight: 600; font-style: italic;
           color: #74c69d; margin: 0 0 28px;
         }
         .hero-desc {
-          font-size: clamp(14px, 1.6vw, 16px); color: rgba(255,255,255,0.62);
+          font-size: clamp(13px, 1.6vw, 16px); color: rgba(255,255,255,0.62);
           max-width: 380px; margin: 0 0 40px; line-height: 1.75;
         }
         .hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -217,20 +216,24 @@ export default function Home() {
         }
         @keyframes scroll-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
 
+        /* Hero info bar */
         .hero-bar {
           position: absolute; bottom: 0; left: 0; right: 0; z-index: 4;
           display: flex; background: rgba(10,28,18,0.6); backdrop-filter: blur(16px);
           border-top: 1px solid rgba(255,255,255,0.06);
         }
         .hero-bar-item {
-          flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
-          padding: 13px 16px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.55);
+          flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+          padding: 13px 12px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.55);
           font-family: 'DM Sans', sans-serif; background: none; border: none;
           border-right: 1px solid rgba(255,255,255,0.06);
           cursor: pointer; text-decoration: none; transition: all 0.2s ease;
+          white-space: nowrap; overflow: hidden;
         }
         .hero-bar-item:last-child { border-right: none; }
         .hero-bar-item:hover { color: #74c69d; background: rgba(116,198,157,0.06); }
+        /* Text label inside bar — hidden on very small screens */
+        .hero-bar-text { overflow: hidden; text-overflow: ellipsis; }
 
         /* ══════════════════════════════════════
            SHARED SECTION
@@ -247,13 +250,13 @@ export default function Home() {
         .tag-bar { width: 18px; height: 2px; background: #40916c; border-radius: 1px; }
         .section-h2 {
           font-family: 'Playfair Display', serif;
-          font-size: clamp(30px, 4vw, 46px); font-weight: 700;
+          font-size: clamp(26px, 4vw, 46px); font-weight: 700;
           color: #0d2419; line-height: 1.1; letter-spacing: -0.8px; margin-bottom: 12px;
         }
         .section-sub { font-size: 15px; color: #6b8c77; line-height: 1.7; max-width: 480px; }
 
         /* ══════════════════════════════════════
-           CATEGORIES — redesigned
+           CATEGORIES
         ══════════════════════════════════════ */
         .bg-tint { background: #f0f7f3; }
 
@@ -261,14 +264,12 @@ export default function Home() {
           display: grid; gap: 20px; margin-top: 52px;
           grid-template-columns: 1fr;
         }
-        @media (min-width: 600px)  { .cat-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 600px) { .cat-grid { grid-template-columns: repeat(2, 1fr); } }
 
-        /* Card */
         .cat-card {
           position: relative; display: flex; flex-direction: column;
           text-decoration: none; border-radius: 28px; overflow: hidden;
-          background: #fff;
-          border: 1px solid rgba(0,0,0,0.06);
+          background: #fff; border: 1px solid rgba(0,0,0,0.06);
           box-shadow: 0 2px 12px rgba(0,0,0,0.05);
           transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
           min-height: 380px;
@@ -278,106 +279,61 @@ export default function Home() {
           box-shadow: 0 24px 56px rgba(0,0,0,0.13);
           border-color: rgba(0,0,0,0.08);
         }
-
-        /* Top gradient panel */
         .cat-header {
-          position: relative; padding: 32px 28px 28px;
-          overflow: hidden; flex-shrink: 0;
-          min-height: 180px;
-          display: flex; flex-direction: column; justify-content: space-between;
+          position: relative; padding: 32px 28px 28px; overflow: hidden; flex-shrink: 0;
+          min-height: 180px; display: flex; flex-direction: column; justify-content: space-between;
         }
-        /* Decorative orb inside header */
         .cat-header-orb {
-          position: absolute; width: 180px; height: 180px;
-          border-radius: 50%; right: -40px; top: -40px;
-          background: rgba(255,255,255,0.06); pointer-events: none;
+          position: absolute; width: 180px; height: 180px; border-radius: 50%;
+          right: -40px; top: -40px; background: rgba(255,255,255,0.06); pointer-events: none;
         }
         .cat-header-orb2 {
-          position: absolute; width: 100px; height: 100px;
-          border-radius: 50%; right: 30px; top: 60px;
-          background: rgba(255,255,255,0.04); pointer-events: none;
+          position: absolute; width: 100px; height: 100px; border-radius: 50%;
+          right: 30px; top: 60px; background: rgba(255,255,255,0.04); pointer-events: none;
         }
-
-        /* Tag + stat row */
         .cat-header-top {
-          display: flex; align-items: center; justify-content: space-between;
-          position: relative; z-index: 1;
+          display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1;
         }
         .cat-tag {
-          font-size: 10px; font-weight: 800;
-          letter-spacing: 1.5px; text-transform: uppercase;
-          color: #fff; background: rgba(255,255,255,0.18);
-          backdrop-filter: blur(8px);
-          border: 1px solid rgba(255,255,255,0.22);
-          padding: 4px 12px; border-radius: 100px;
+          font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+          color: #fff; background: rgba(255,255,255,0.18); backdrop-filter: blur(8px);
+          border: 1px solid rgba(255,255,255,0.22); padding: 4px 12px; border-radius: 100px;
         }
         .cat-stat {
-          font-size: 11px; font-weight: 700;
-          color: rgba(255,255,255,0.65);
-          background: rgba(0,0,0,0.2);
-          padding: 3px 10px; border-radius: 8px;
+          font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.65);
+          background: rgba(0,0,0,0.2); padding: 3px 10px; border-radius: 8px;
         }
-
-        /* Icon */
         .cat-icon-wrap {
-          position: relative; z-index: 1;
-          width: 64px; height: 64px; border-radius: 20px;
-          background: rgba(255,255,255,0.15);
-          backdrop-filter: blur(10px);
+          position: relative; z-index: 1; width: 64px; height: 64px; border-radius: 20px;
+          background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
           border: 1px solid rgba(255,255,255,0.25);
-          display: flex; align-items: center; justify-content: center;
-          margin-top: 20px;
+          display: flex; align-items: center; justify-content: center; margin-top: 20px;
           transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
         }
         .cat-card:hover .cat-icon-wrap { transform: scale(1.08) rotate(-4deg); }
-
-        /* Body */
-        .cat-body {
-          padding: 24px 28px 28px; flex: 1;
-          display: flex; flex-direction: column;
-        }
+        .cat-body { padding: 24px 28px 28px; flex: 1; display: flex; flex-direction: column; }
         .cat-title {
-          font-family: 'Playfair Display', serif;
-          font-size: 22px; font-weight: 700; color: #0d2419;
-          margin-bottom: 8px; line-height: 1.2;
+          font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700;
+          color: #0d2419; margin-bottom: 8px; line-height: 1.2;
         }
-        .cat-desc {
-          font-size: 13.5px; color: #6b8c77; line-height: 1.65;
-          margin-bottom: 20px;
-        }
-
-        /* Feature list */
+        .cat-desc { font-size: 13.5px; color: #6b8c77; line-height: 1.65; margin-bottom: 20px; }
         .cat-features {
           list-style: none; padding: 0; margin: 0 0 24px;
           display: flex; flex-direction: column; gap: 7px;
         }
-        .cat-feature {
-          display: flex; align-items: center; gap: 8px;
-          font-size: 12.5px; color: #4a7c5f; font-weight: 500;
-        }
-        .cat-feature-dot {
-          width: 5px; height: 5px; border-radius: 50%;
-          background: #40916c; flex-shrink: 0;
-        }
-
-        /* CTA row */
+        .cat-feature { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #4a7c5f; font-weight: 500; }
+        .cat-feature-dot { width: 5px; height: 5px; border-radius: 50%; background: #40916c; flex-shrink: 0; }
         .cat-footer {
-          margin-top: auto; padding-top: 18px;
-          border-top: 1px solid #eef5f1;
+          margin-top: auto; padding-top: 18px; border-top: 1px solid #eef5f1;
           display: flex; align-items: center; justify-content: space-between;
         }
-        .cat-cta-text {
-          font-size: 13px; font-weight: 700; color: #2d6a4f;
-        }
+        .cat-cta-text { font-size: 13px; font-weight: 700; color: #2d6a4f; }
         .cat-arrow-btn {
-          width: 36px; height: 36px; border-radius: 12px;
-          background: #d8f3dc; display: flex; align-items: center; justify-content: center;
-          color: #1b4332; flex-shrink: 0;
-          transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+          width: 36px; height: 36px; border-radius: 12px; background: #d8f3dc;
+          display: flex; align-items: center; justify-content: center;
+          color: #1b4332; flex-shrink: 0; transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
         }
-        .cat-card:hover .cat-arrow-btn {
-          background: #2d6a4f; color: #fff; transform: rotate(45deg);
-        }
+        .cat-card:hover .cat-arrow-btn { background: #2d6a4f; color: #fff; transform: rotate(45deg); }
 
         /* ══════════════════════════════════════
            FEATURED PRODUCTS
@@ -388,9 +344,8 @@ export default function Home() {
         }
         .view-all {
           display: inline-flex; align-items: center; gap: 6px;
-          font-size: 13px; font-weight: 600; color: #40916c;
-          text-decoration: none; padding: 9px 18px;
-          border: 1px solid #d4e8db; border-radius: 12px;
+          font-size: 13px; font-weight: 600; color: #40916c; text-decoration: none;
+          padding: 9px 18px; border: 1px solid #d4e8db; border-radius: 12px;
           transition: all 0.2s ease; background: #fff; white-space: nowrap;
         }
         .view-all:hover { border-color: #40916c; background: #f0f7f3; }
@@ -403,16 +358,12 @@ export default function Home() {
         @media (min-width: 1024px) { .prod-grid { grid-template-columns: repeat(4, 1fr); } }
 
         .prod-card {
-          display: flex; flex-direction: column;
-          text-decoration: none; background: #fff;
-          border: 1px solid #e2ede8; border-radius: 20px;
-          overflow: hidden; width: 100%; height: 100%;
-          transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+          display: flex; flex-direction: column; text-decoration: none; background: #fff;
+          border: 1px solid #e2ede8; border-radius: 20px; overflow: hidden;
+          width: 100%; height: 100%; transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
         }
         .prod-card:hover {
-          border-color: #b7e4c7;
-          box-shadow: 0 16px 40px rgba(45,106,79,0.1);
-          transform: translateY(-4px);
+          border-color: #b7e4c7; box-shadow: 0 16px 40px rgba(45,106,79,0.1); transform: translateY(-4px);
         }
         .prod-img {
           position: relative; width: 100%; height: 200px;
@@ -436,15 +387,13 @@ export default function Home() {
           background: #ef4444; color: #fff; padding: 4px 8px; border-radius: 8px; line-height: 1.3;
         }
         .prod-stock-dot {
-          position: absolute; top: 12px; right: 12px;
-          width: 8px; height: 8px; border-radius: 50%;
+          position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; border-radius: 50%;
         }
         .prod-stock-dot.in  { background: #74c69d; box-shadow: 0 0 0 3px rgba(116,198,157,0.25); }
         .prod-stock-dot.out { background: #f87171; box-shadow: 0 0 0 3px rgba(248,113,113,0.25); }
         .prod-body { padding: 18px; flex: 1; display: flex; flex-direction: column; }
         .prod-name {
-          font-family: 'Playfair Display', serif;
-          font-size: 16px; font-weight: 700; color: #0d2419;
+          font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: #0d2419;
           margin-bottom: 5px; line-height: 1.3;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
@@ -461,10 +410,7 @@ export default function Home() {
           color: #2d6a4f; letter-spacing: -0.4px;
         }
         .prod-price-wrap { display: flex; flex-direction: column; gap: 1px; }
-        .prod-price-original {
-          font-size: 11px; font-weight: 500; color: #a0b8aa;
-          text-decoration: line-through; line-height: 1;
-        }
+        .prod-price-original { font-size: 11px; font-weight: 500; color: #a0b8aa; text-decoration: line-through; line-height: 1; }
         .prod-price-discounted {
           font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700;
           color: #2d6a4f; letter-spacing: -0.4px; line-height: 1.15;
@@ -508,7 +454,7 @@ export default function Home() {
         }
         .cta-h2 {
           font-family: 'Playfair Display', serif;
-          font-size: clamp(30px, 5vw, 52px); font-weight: 700;
+          font-size: clamp(26px, 5vw, 52px); font-weight: 700;
           color: #fff; margin-bottom: 18px; line-height: 1.08; letter-spacing: -1px;
         }
         .cta-h2 em { font-style: italic; color: #74c69d; }
@@ -529,14 +475,11 @@ export default function Home() {
           position: relative; box-shadow: 0 -8px 64px rgba(0,0,0,0.2);
         }
         @media (min-width: 600px) { .modal-card { border-radius: 28px; padding: 44px; } }
-        .modal-handle {
-          width: 40px; height: 4px; background: #e2ede8;
-          border-radius: 2px; margin: 0 auto 28px;
-        }
+        .modal-handle { width: 40px; height: 4px; background: #e2ede8; border-radius: 2px; margin: 0 auto 28px; }
         @media (min-width: 600px) { .modal-handle { display: none; } }
         .modal-close {
-          position: absolute; top: 20px; right: 20px;
-          width: 34px; height: 34px; background: #f0f7f3; border: none; border-radius: 10px;
+          position: absolute; top: 20px; right: 20px; width: 34px; height: 34px;
+          background: #f0f7f3; border: none; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; color: #6b8c77; transition: all 0.15s ease;
         }
@@ -548,27 +491,21 @@ export default function Home() {
         .modal-sub { font-size: 13.5px; color: #6b8c77; margin-bottom: 32px; line-height: 1.6; }
         .contact-list { display: flex; flex-direction: column; gap: 12px; }
         .contact-row {
-          display: flex; align-items: flex-start; gap: 14px;
-          padding: 16px; background: #f8faf9; border-radius: 16px;
-          border: 1px solid #e2ede8; transition: border-color 0.2s ease;
+          display: flex; align-items: flex-start; gap: 14px; padding: 16px;
+          background: #f8faf9; border-radius: 16px; border: 1px solid #e2ede8; transition: border-color 0.2s;
         }
         .contact-row:hover { border-color: #b7e4c7; }
         .contact-icon {
-          width: 40px; height: 40px; flex-shrink: 0; background: #fff;
-          border: 1px solid #e2ede8; border-radius: 12px;
-          display: flex; align-items: center; justify-content: center; color: #40916c;
+          width: 40px; height: 40px; flex-shrink: 0; background: #fff; border: 1px solid #e2ede8;
+          border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #40916c;
         }
-        .contact-label {
-          font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-          color: #6b8c77; margin-bottom: 4px;
-        }
+        .contact-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #6b8c77; margin-bottom: 4px; }
         .contact-value { font-size: 13.5px; color: #0d2419; font-weight: 500; }
         .contact-value a { color: #0d2419; text-decoration: none; }
         .contact-value a:hover { color: #40916c; }
         .maps-link {
-          display: inline-flex; align-items: center; gap: 4px;
-          font-size: 12px; font-weight: 600; color: #40916c;
-          background: none; border: none; font-family: 'DM Sans', sans-serif;
+          display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
+          color: #40916c; background: none; border: none; font-family: 'DM Sans', sans-serif;
           cursor: pointer; padding: 0; margin-top: 5px; transition: color 0.15s;
         }
         .maps-link:hover { color: #2d6a4f; }
@@ -576,10 +513,107 @@ export default function Home() {
           width: 100%; margin-top: 24px; padding: 14px;
           background: linear-gradient(135deg, #40916c, #2d6a4f); color: #fff;
           font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
-          border: none; border-radius: 14px; cursor: pointer; transition: all 0.2s ease;
+          border: none; border-radius: 14px; cursor: pointer; transition: all 0.2s;
           box-shadow: 0 4px 16px rgba(45,106,79,0.3);
         }
         .modal-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(45,106,79,0.4); }
+
+        /* ══════════════════════════════════════
+           MOBILE COMPACT  (< 540px)
+        ══════════════════════════════════════ */
+
+        /* ── Hero ── */
+        @media (max-width: 539px) {
+          .hero { min-height: 520px; }
+          .hero-content { padding: 0 18px; }
+          .hero-eyebrow {
+            margin-bottom: 14px; padding: 4px 11px 4px 8px;
+            font-size: 10px; letter-spacing: 1.4px;
+          }
+          .hero-eyebrow-dot { width: 5px; height: 5px; }
+          .hero-title-italic { margin-bottom: 14px; }
+          .hero-desc { margin-bottom: 22px; max-width: 100%; }
+          .hero-actions { gap: 8px; }
+          .btn-primary { padding: 11px 18px; font-size: 13px; border-radius: 12px; gap: 6px; }
+          .btn-ghost  { padding: 10px 18px; font-size: 13px; border-radius: 12px; gap: 6px; }
+          .hero-scroll { display: none; }
+          .hero-bar-item { font-size: 11px; padding: 11px 6px; gap: 5px; }
+        }
+        /* On the narrowest screens, hide bar labels — show icons only */
+        @media (max-width: 400px) {
+          .hero-bar-text { display: none; }
+          .hero-bar-item { padding: 14px 0; justify-content: center; }
+        }
+
+        /* ── Sections ── */
+        @media (max-width: 539px) {
+          .section { padding: 52px 0; }
+          .section-inner { padding: 0 16px; }
+          .section-tag { font-size: 10px; letter-spacing: 2px; margin-bottom: 10px; }
+          .section-sub { font-size: 13.5px; }
+        }
+
+        /* ── Category grid & cards ── */
+        @media (max-width: 539px) {
+          .cat-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px; margin-top: 28px;
+          }
+          .cat-card { min-height: auto; border-radius: 18px; }
+
+          /* Compact gradient header */
+          .cat-header { min-height: 108px; padding: 13px 13px 11px; }
+          .cat-header-orb { width: 110px; height: 110px; right: -28px; top: -28px; }
+          .cat-header-orb2 { display: none; }
+          .cat-tag { font-size: 8px; padding: 3px 8px; letter-spacing: 1px; }
+          .cat-stat { font-size: 9px; padding: 2px 7px; }
+          .cat-icon-wrap { width: 44px; height: 44px; border-radius: 13px; margin-top: 10px; }
+
+          /* Compact body — hide desc & feature list */
+          .cat-body { padding: 11px 13px 13px; }
+          .cat-title { font-size: 14px; margin-bottom: 0; line-height: 1.25; }
+          .cat-desc { display: none; }
+          .cat-features { display: none; }
+          .cat-footer { padding-top: 10px; }
+          .cat-cta-text { font-size: 11px; }
+          .cat-arrow-btn { width: 28px; height: 28px; border-radius: 9px; }
+        }
+
+        /* ── Featured products ── */
+        @media (max-width: 539px) {
+          .products-row { margin-bottom: 18px; }
+          .view-all { padding: 7px 13px; font-size: 12px; border-radius: 10px; }
+
+          /* 2-column compact grid */
+          .prod-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+          .prod-card { border-radius: 14px; }
+
+          /* Shorter square-ish image */
+          .prod-img { height: 130px; }
+          .prod-cat-badge { display: none; }
+          .prod-discount-badge { top: 8px; right: 8px; font-size: 9px; padding: 3px 6px; }
+          .prod-stock-dot { top: 8px; right: 8px; width: 6px; height: 6px; }
+
+          /* Compact body */
+          .prod-body { padding: 10px; }
+          .prod-name { font-size: 13px; margin-bottom: 0; }
+          .prod-desc { display: none; }
+          .prod-foot { padding-top: 8px; gap: 4px; }
+          .prod-price { font-size: 14px; }
+          .prod-price-discounted { font-size: 14px; }
+          .prod-price-original { font-size: 9px; }
+          .prod-price-savings { font-size: 9px; margin-top: 0; }
+          .prod-stock-label { font-size: 9px; padding: 2px 6px; border-radius: 6px; }
+        }
+
+        /* ── CTA ── */
+        @media (max-width: 539px) {
+          .cta-wrap { padding: 60px 0; }
+          .cta-eyebrow { margin-bottom: 18px; }
+          .cta-p { font-size: 13.5px; margin-bottom: 28px; }
+          .cta-btns { gap: 8px; }
+          .btn-primary, .btn-ghost { padding: 11px 18px; font-size: 13px; }
+        }
       `}</style>
 
       <div className="home-root">
@@ -606,8 +640,6 @@ export default function Home() {
             />
           ))}
           <div className="hero-overlay" />
-
-          {/* ── arrows and dots REMOVED ── */}
 
           <div className="hero-content">
             <motion.div
@@ -652,15 +684,19 @@ export default function Home() {
 
           <div className="hero-scroll"><div className="scroll-line" /></div>
 
+          {/* Bar — text wrapped in .hero-bar-text so it can be hidden on xs screens */}
           <div className="hero-bar">
             <button className="hero-bar-item" onClick={openGoogleMaps}>
-              <MapPin size={13} />Limuru, Kiambu
+              <MapPin size={13} />
+              <span className="hero-bar-text">Limuru, Kiambu</span>
             </button>
             <a href="tel:+254722395370" className="hero-bar-item">
-              <Phone size={13} />+254 722 395 370
+              <Phone size={13} />
+              <span className="hero-bar-text">+254 722 395 370</span>
             </a>
             <a href="mailto:info@penchicfarm.com" className="hero-bar-item">
-              <Mail size={13} />info@penchicfarm.com
+              <Mail size={13} />
+              <span className="hero-bar-text">info@penchicfarm.com</span>
             </a>
           </div>
         </section>
@@ -680,47 +716,34 @@ export default function Home() {
               {categories.map((cat, i) => (
                 <ScrollReveal key={cat.title} direction={i % 2 === 0 ? 'left' : 'right'} delay={i * 0.08}>
                   <Link to={cat.link} className="cat-card">
-
-                    {/* Gradient header */}
-                    <div
-                      className="cat-header"
-                      style={{ background: cat.gradient }}
-                    >
+                    <div className="cat-header" style={{ background: cat.gradient }}>
                       <div className="cat-header-orb" />
                       <div className="cat-header-orb2" />
-
                       <div className="cat-header-top">
                         <span className="cat-tag">{cat.tag}</span>
                         <span className="cat-stat">{cat.stat}</span>
                       </div>
-
                       <div className="cat-icon-wrap">
-                        <cat.icon size={28} color={cat.accentColor} strokeWidth={1.6} />
+                        <cat.icon size={26} color={cat.accentColor} strokeWidth={1.6} />
                       </div>
                     </div>
 
-                    {/* Body */}
                     <div className="cat-body">
                       <h3 className="cat-title">{cat.title}</h3>
+                      {/* desc & features hidden on mobile via CSS */}
                       <p className="cat-desc">{cat.description}</p>
-
                       <ul className="cat-features">
                         {cat.features.map(f => (
                           <li key={f} className="cat-feature">
-                            <span className="cat-feature-dot" />
-                            {f}
+                            <span className="cat-feature-dot" />{f}
                           </li>
                         ))}
                       </ul>
-
                       <div className="cat-footer">
                         <span className="cat-cta-text">Browse products</span>
-                        <span className="cat-arrow-btn">
-                          <ArrowRight size={15} />
-                        </span>
+                        <span className="cat-arrow-btn"><ArrowRight size={14} /></span>
                       </div>
                     </div>
-
                   </Link>
                 </ScrollReveal>
               ))}
@@ -768,6 +791,7 @@ export default function Home() {
                         </div>
                         <div className="prod-body">
                           <h3 className="prod-name">{p.name}</h3>
+                          {/* desc hidden on mobile via CSS */}
                           <p className="prod-desc">{p.description}</p>
                           <div className="prod-foot">
                             {hasDiscount ? (
