@@ -1,16 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Package2,
-  ShoppingCart,
-  AlertCircle,
-  BarChart3,
-  TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
-  RefreshCw,
+  Package2, ShoppingCart, AlertCircle, BarChart3, TrendingUp,
+  ArrowUpRight, ArrowDownRight, Calendar, ChevronDown, ChevronUp, RefreshCw,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -19,13 +10,66 @@ import { motion, AnimatePresence } from 'framer-motion';
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Product    { id: string; name: string; stock: number; price: number }
 interface OrderItem  { quantity: number; products: { name: string; price: number } | null }
-interface Order      { id: string; status: string; created_at: string; order_items: OrderItem[]; profiles?: { email: string } | null }
+interface Order      { id: string; status: string; created_at: string; order_items: OrderItem[] }
 interface TopProduct { name: string; quantity: number; revenue: number }
-interface MonthlyComparison {
-  currentMonth:  { revenue: number; orders: number };
-  previousMonth: { revenue: number; orders: number };
-  percentageChange: number;
-}
+interface PeriodStats { revenue: number; orders: number }
+
+// ── Date-range helpers ─────────────────────────────────────────────────────────
+
+interface DateRange { start: Date; end: Date }
+
+/**
+ * Returns the [start, end] window for the selected time range.
+ * Returns null if the range is incomplete (custom with missing/invalid dates).
+ */
+const getDateRange = (
+  timeRange: string,
+  customStart: string,
+  customEnd: string,
+): DateRange | null => {
+  const now = new Date();
+  switch (timeRange) {
+    case 'current':
+      return {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end:   now,
+      };
+    case 'previous': {
+      return {
+        start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+        end:   new Date(now.getFullYear(), now.getMonth(),     0, 23, 59, 59, 999),
+      };
+    }
+    case 'custom': {
+      if (!customStart || !customEnd) return null;
+      const s = new Date(customStart);
+      const e = new Date(customEnd);
+      e.setHours(23, 59, 59, 999);
+      if (isNaN(s.getTime()) || isNaN(e.getTime()) || s > e) return null;
+      return { start: s, end: e };
+    }
+    default: return null;
+  }
+};
+
+/**
+ * Returns the comparison window (same duration, immediately before `range`).
+ * This works for any range — custom or preset.
+ */
+const getPreviousRange = (range: DateRange): DateRange => {
+  const durationMs = range.end.getTime() - range.start.getTime();
+  return {
+    start: new Date(range.start.getTime() - durationMs - 1),
+    end:   new Date(range.start.getTime() - 1),
+  };
+};
+
+/** Human-readable label for the comparison period shown in stat cards */
+const comparisonLabel = (timeRange: string): string => {
+  if (timeRange === 'current')  return 'Last month';
+  if (timeRange === 'previous') return 'Month before';
+  return 'Prior period';
+};
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const getOrderTotal = (items: OrderItem[]) =>
@@ -39,24 +83,18 @@ const fmt    = (n: number) => Math.round(n).toLocaleString('en-KE');
 const fmtPct = (n: number) => `${Math.abs(n).toFixed(1)}%`;
 
 // ── Shared sub-components ──────────────────────────────────────────────────────
-
-// Trend pill — green on up, red on down
-const TrendBadge: React.FC<{ value: number; suffix?: string }> = ({ value, suffix = 'vs last month' }) => {
+const TrendBadge: React.FC<{ value: number; suffix?: string }> = ({ value, suffix = '' }) => {
   const up = value >= 0;
   return (
     <span className={`inline-flex items-center gap-0.5 px-2 py-[3px] rounded-full text-[11px] font-semibold ${
       up ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
     }`}>
-      {up
-        ? <ArrowUpRight   className="w-3 h-3" />
-        : <ArrowDownRight className="w-3 h-3" />
-      }
-      {fmtPct(value)} {suffix}
+      {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+      {fmtPct(value)}{suffix && ` ${suffix}`}
     </span>
   );
 };
 
-// Stat card skeleton
 const StatSkeleton = () => (
   <div className="bg-white rounded-xl border border-neutral-200 p-5 animate-pulse">
     <div className="flex items-start justify-between mb-4">
@@ -71,7 +109,6 @@ const StatSkeleton = () => (
   </div>
 );
 
-// Section skeleton
 const SectionSkeleton = () => (
   <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden animate-pulse">
     <div className="flex justify-between items-center px-5 py-4 border-b border-neutral-100">
@@ -94,7 +131,6 @@ const SectionSkeleton = () => (
   </div>
 );
 
-// Rank badge — gold/silver/bronze for top 3
 const RANK_CLS = [
   'bg-amber-50  text-amber-600  ring-1 ring-amber-200/60',
   'bg-neutral-100 text-neutral-500 ring-1 ring-neutral-200',
@@ -102,7 +138,6 @@ const RANK_CLS = [
 ];
 const rankCls = (i: number) => RANK_CLS[i] ?? 'bg-neutral-50 text-neutral-400';
 
-// Status badge map (shared with order rows)
 const STATUS_MAP: Record<string, string> = {
   completed:  'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60',
   processing: 'bg-sky-50     text-sky-700     ring-1 ring-sky-200/60',
@@ -110,93 +145,105 @@ const STATUS_MAP: Record<string, string> = {
   cancelled:  'bg-red-50     text-red-600     ring-1 ring-red-200/60',
 };
 
-// Animation variants
 const listV = { hidden: {}, visible: { transition: { staggerChildren: 0.07 } } };
 const itemV = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.25, 0.1, 0.25, 1] } } };
 
 // ── Main component ─────────────────────────────────────────────────────────────
 const AnalyticsDashboard: React.FC = () => {
-  const [lowStockProducts,  setLowStockProducts]  = useState<Product[]>([]);
-  const [allStockProducts,  setAllStockProducts]  = useState<Product[]>([]);
-  const [totalRevenue,      setTotalRevenue]      = useState(0);
-  const [previousRevenue,   setPreviousRevenue]   = useState(0);
-  const [revenueChange,     setRevenueChange]     = useState(0);
-  const [avgOrderValue,     setAvgOrderValue]     = useState(0);
-  const [topSellingProducts,setTopSellingProducts]= useState<TopProduct[]>([]);
-  const [showAllStock,      setShowAllStock]      = useState(false);
-  const [loading,           setLoading]           = useState(true);
-  const [error,             setError]             = useState<string | null>(null);
-  const [latestOrders,      setLatestOrders]      = useState<Order[]>([]);
-  const [timeRange,         setTimeRange]         = useState('current');
-  const [customStartDate,   setCustomStartDate]   = useState('');
-  const [customEndDate,     setCustomEndDate]     = useState('');
-  const [monthlyComparison, setMonthlyComparison] = useState<MonthlyComparison>({
-    currentMonth:  { revenue: 0, orders: 0 },
-    previousMonth: { revenue: 0, orders: 0 },
-    percentageChange: 0,
-  });
+  const [lowStockProducts,   setLowStockProducts]   = useState<Product[]>([]);
+  const [allStockProducts,   setAllStockProducts]   = useState<Product[]>([]);
+  const [currentStats,       setCurrentStats]       = useState<PeriodStats>({ revenue: 0, orders: 0 });
+  const [previousStats,      setPreviousStats]      = useState<PeriodStats>({ revenue: 0, orders: 0 });
+  const [avgOrderValue,      setAvgOrderValue]      = useState(0);
+  const [topSellingProducts, setTopSellingProducts] = useState<TopProduct[]>([]);
+  const [latestOrders,       setLatestOrders]       = useState<Order[]>([]);
+  const [showAllStock,       setShowAllStock]       = useState(false);
+  const [loading,            setLoading]            = useState(true);
+  const [error,              setError]              = useState<string | null>(null);
+  const [rangeError,         setRangeError]         = useState<string | null>(null);
 
+  const [timeRange,       setTimeRange]       = useState('current');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate,   setCustomEndDate]   = useState('');
+
+  // Derived values
+  const revenueChange = pctChange(currentStats.revenue, previousStats.revenue);
+  const ordersChange  = pctChange(currentStats.orders,  previousStats.orders);
+  const cmpLabel      = comparisonLabel(timeRange);
+
+  // ── Validate custom range live ─────────────────────────────────────────────
+  useEffect(() => {
+    if (timeRange !== 'custom') { setRangeError(null); return; }
+    if (!customStartDate || !customEndDate) { setRangeError(null); return; }
+    const s = new Date(customStartDate);
+    const e = new Date(customEndDate);
+    if (s > e) {
+      setRangeError('Start date must be before end date');
+    } else {
+      setRangeError(null);
+    }
+  }, [timeRange, customStartDate, customEndDate]);
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchData = async () => {
+      // Compute window — bail out early for incomplete custom ranges
+      const range = getDateRange(timeRange, customStartDate, customEndDate);
+      if (!range) return; // custom range not yet complete — stay on previous data
+
+      const prevRange = getPreviousRange(range);
+      const orderSelect = `*, order_items!inner(quantity, products!inner(name, price))`;
+
       setLoading(true);
       setError(null);
+
       try {
-        const now                = new Date();
-        const currentMonthStart  = new Date(now.getFullYear(), now.getMonth(), 1);
-        const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const previousMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0);
-
-        const { data: allData, error: allError } = await supabase
+        // Products (not date-filtered — always show full stock picture)
+        const { data: allProducts, error: prodErr } = await supabase
           .from('products').select('id, name, stock, price');
-        if (allError) throw allError;
+        if (prodErr) throw prodErr;
+        setAllStockProducts(allProducts ?? []);
+        setLowStockProducts((allProducts ?? []).filter(p => p.stock < 5));
 
-        setAllStockProducts(allData ?? []);
-        setLowStockProducts((allData ?? []).filter(p => p.stock < 5));
-
-        const orderQuery = `*, order_items!inner(quantity, products!inner(name, price))`;
-
-        const [{ data: currOrders, error: currErr }, { data: prevOrders, error: prevErr }] = await Promise.all([
-          supabase.from('orders').select(orderQuery)
-            .gte('created_at', currentMonthStart.toISOString())
-            .lte('created_at', now.toISOString())
-            .order('created_at', { ascending: false }),
-          supabase.from('orders').select(orderQuery)
-            .gte('created_at', previousMonthStart.toISOString())
-            .lte('created_at', previousMonthEnd.toISOString())
-            .order('created_at', { ascending: false }),
-        ]);
+        // Current period orders
+        const { data: currOrders, error: currErr } = await supabase
+          .from('orders')
+          .select(orderSelect)
+          .gte('created_at', range.start.toISOString())
+          .lte('created_at', range.end.toISOString())
+          .order('created_at', { ascending: false });
         if (currErr) throw currErr;
+
+        // Comparison period orders
+        const { data: prevOrders, error: prevErr } = await supabase
+          .from('orders')
+          .select(orderSelect)
+          .gte('created_at', prevRange.start.toISOString())
+          .lte('created_at', prevRange.end.toISOString());
         if (prevErr) throw prevErr;
 
-        const currentRevenue = (currOrders ?? []).reduce((acc, o) => acc + getOrderTotal(o.order_items), 0);
-        const prevRevenue    = (prevOrders  ?? []).reduce((acc, o) => acc + getOrderTotal(o.order_items), 0);
-        const pctRev         = pctChange(currentRevenue, prevRevenue);
+        // Aggregate current period
+        const currRevenue = (currOrders ?? []).reduce((acc, o) => acc + getOrderTotal(o.order_items), 0);
+        const prevRevenue = (prevOrders  ?? []).reduce((acc, o) => acc + getOrderTotal(o.order_items), 0);
 
-        setMonthlyComparison({
-          currentMonth:  { revenue: currentRevenue, orders: currOrders?.length ?? 0 },
-          previousMonth: { revenue: prevRevenue,    orders: prevOrders?.length  ?? 0 },
-          percentageChange: pctRev,
-        });
-        setTotalRevenue(currentRevenue);
-        setPreviousRevenue(prevRevenue);
-        setRevenueChange(pctRev);
-        setAvgOrderValue(currOrders?.length ? currentRevenue / currOrders.length : 0);
+        setCurrentStats({ revenue: currRevenue, orders: currOrders?.length ?? 0 });
+        setPreviousStats({ revenue: prevRevenue, orders: prevOrders?.length  ?? 0 });
+        setAvgOrderValue(currOrders?.length ? currRevenue / currOrders.length : 0);
 
-        // Top selling products
-        const productSales: Record<string, TopProduct> = {};
-        (currOrders ?? []).forEach(order => {
+        // Top products by revenue in current period
+        const sales: Record<string, TopProduct> = {};
+        (currOrders ?? []).forEach(order =>
           (order.order_items ?? []).forEach(item => {
             const name = item?.products?.name ?? 'Unknown';
-            if (!productSales[name]) productSales[name] = { name, quantity: 0, revenue: 0 };
-            productSales[name].quantity += item.quantity ?? 0;
-            productSales[name].revenue  += (item.quantity ?? 0) * (item?.products?.price ?? 0);
-          });
-        });
-        setTopSellingProducts(
-          Object.values(productSales)
-            .sort((a, b) => b.revenue - a.revenue)
-            .slice(0, 5)
+            if (!sales[name]) sales[name] = { name, quantity: 0, revenue: 0 };
+            sales[name].quantity += item.quantity ?? 0;
+            sales[name].revenue  += (item.quantity ?? 0) * (item?.products?.price ?? 0);
+          })
         );
+        setTopSellingProducts(
+          Object.values(sales).sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+        );
+
         setLatestOrders((currOrders ?? []).slice(0, 5));
       } catch (err) {
         setError('Failed to load analytics data. Please try again.');
@@ -207,25 +254,25 @@ const AnalyticsDashboard: React.FC = () => {
     };
 
     fetchData();
-  }, [timeRange, customStartDate, customEndDate]);
-
-  const ordersPctChange = pctChange(
-    monthlyComparison.currentMonth.orders,
-    monthlyComparison.previousMonth.orders,
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    timeRange,
+    // Only re-fetch for custom when both dates are valid
+    timeRange === 'custom' ? customStartDate : '',
+    timeRange === 'custom' ? customEndDate   : '',
+  ]);
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <AdminLayout title="Analytics" subtitle="Business insights and performance metrics">
         <div className="space-y-6">
-          <div className="h-10 w-64 bg-neutral-200 rounded-xl animate-pulse" />
+          <div className="h-10 w-72 bg-neutral-200 rounded-xl animate-pulse" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => <StatSkeleton key={i} />)}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <SectionSkeleton />
-            <SectionSkeleton />
+            <SectionSkeleton /><SectionSkeleton />
           </div>
         </div>
       </AdminLayout>
@@ -248,8 +295,7 @@ const AnalyticsDashboard: React.FC = () => {
             onClick={() => window.location.reload()}
             className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Try again
+            <RefreshCw className="w-3.5 h-3.5" /> Try again
           </button>
         </div>
       </AdminLayout>
@@ -267,7 +313,7 @@ const AnalyticsDashboard: React.FC = () => {
             <Calendar className="w-4 h-4 text-neutral-400 flex-shrink-0" />
             <select
               value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
+              onChange={e => { setTimeRange(e.target.value); }}
               className="text-sm font-medium text-neutral-700 bg-transparent border-none outline-none pr-1 cursor-pointer"
             >
               <option value="current">Current Month</option>
@@ -285,20 +331,41 @@ const AnalyticsDashboard: React.FC = () => {
                 transition={{ duration: 0.18 }}
                 className="flex items-center gap-2 flex-wrap"
               >
-                {[
-                  { val: customStartDate, setter: setCustomStartDate, placeholder: 'Start date' },
-                  { val: customEndDate,   setter: setCustomEndDate,   placeholder: 'End date'   },
-                ].map(({ val, setter }, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && <span className="text-xs text-neutral-400 font-medium">to</span>}
-                    <input
-                      type="date"
-                      value={val}
-                      onChange={(e) => setter(e.target.value)}
-                      className="text-sm text-neutral-700 bg-white border border-neutral-200 rounded-xl px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all"
-                    />
-                  </React.Fragment>
-                ))}
+                <input
+                  type="date"
+                  value={customStartDate}
+                  max={customEndDate || undefined}
+                  onChange={e => setCustomStartDate(e.target.value)}
+                  className={`text-sm text-neutral-700 bg-white border rounded-xl px-3 py-2 shadow-sm
+                    focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all ${
+                    rangeError ? 'border-red-300' : 'border-neutral-200'
+                  }`}
+                />
+                <span className="text-xs text-neutral-400 font-medium">to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  min={customStartDate || undefined}
+                  onChange={e => setCustomEndDate(e.target.value)}
+                  className={`text-sm text-neutral-700 bg-white border rounded-xl px-3 py-2 shadow-sm
+                    focus:outline-none focus:ring-2 focus:ring-neutral-900/[0.06] focus:border-neutral-300 transition-all ${
+                    rangeError ? 'border-red-300' : 'border-neutral-200'
+                  }`}
+                />
+                {/* Inline validation feedback */}
+                {rangeError && (
+                  <motion.span
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="flex items-center gap-1 text-xs text-red-600 font-medium"
+                  >
+                    <AlertCircle className="w-3 h-3" />
+                    {rangeError}
+                  </motion.span>
+                )}
+                {/* Hint when range is incomplete */}
+                {!customStartDate || !customEndDate ? (
+                  <span className="text-xs text-neutral-400">Select both dates to apply</span>
+                ) : null}
               </motion.div>
             )}
           </AnimatePresence>
@@ -306,13 +373,12 @@ const AnalyticsDashboard: React.FC = () => {
 
         {/* ── KPI stat cards ─────────────────────────────────────────────────── */}
         <motion.div
-          variants={listV}
-          initial="hidden"
-          animate="visible"
+          variants={listV} initial="hidden" animate="visible"
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {/* Revenue */}
-          <motion.div variants={itemV} className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm hover:shadow-md hover:border-neutral-300 transition-all">
+          <motion.div variants={itemV}
+            className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm hover:shadow-md hover:border-neutral-300 transition-all">
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-emerald-500" />
@@ -320,37 +386,39 @@ const AnalyticsDashboard: React.FC = () => {
               <TrendBadge value={revenueChange} />
             </div>
             <p className="text-2xl font-bold text-neutral-900 tracking-tight tabular-nums">
-              KES {fmt(totalRevenue)}
+              KES {fmt(currentStats.revenue)}
             </p>
-            <p className="text-sm text-neutral-400 mt-1">Revenue this month</p>
+            <p className="text-sm text-neutral-400 mt-1">Revenue this period</p>
             <div className="mt-4 pt-3 border-t border-neutral-100">
               <p className="text-[11px] text-neutral-400">
-                Last month: <span className="font-semibold text-neutral-600">KES {fmt(previousRevenue)}</span>
+                {cmpLabel}: <span className="font-semibold text-neutral-600">KES {fmt(previousStats.revenue)}</span>
               </p>
             </div>
           </motion.div>
 
           {/* Orders */}
-          <motion.div variants={itemV} className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm hover:shadow-md hover:border-neutral-300 transition-all">
+          <motion.div variants={itemV}
+            className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm hover:shadow-md hover:border-neutral-300 transition-all">
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center">
                 <ShoppingCart className="w-5 h-5 text-sky-500" />
               </div>
-              <TrendBadge value={ordersPctChange} />
+              <TrendBadge value={ordersChange} />
             </div>
             <p className="text-2xl font-bold text-neutral-900 tracking-tight tabular-nums">
-              {monthlyComparison.currentMonth.orders}
+              {currentStats.orders}
             </p>
-            <p className="text-sm text-neutral-400 mt-1">Orders this month</p>
+            <p className="text-sm text-neutral-400 mt-1">Orders this period</p>
             <div className="mt-4 pt-3 border-t border-neutral-100">
               <p className="text-[11px] text-neutral-400">
-                Last month: <span className="font-semibold text-neutral-600">{monthlyComparison.previousMonth.orders} orders</span>
+                {cmpLabel}: <span className="font-semibold text-neutral-600">{previousStats.orders} orders</span>
               </p>
             </div>
           </motion.div>
 
           {/* Avg order value */}
-          <motion.div variants={itemV} className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm hover:shadow-md hover:border-neutral-300 transition-all">
+          <motion.div variants={itemV}
+            className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm hover:shadow-md hover:border-neutral-300 transition-all">
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center">
                 <BarChart3 className="w-5 h-5 text-violet-500" />
@@ -362,21 +430,18 @@ const AnalyticsDashboard: React.FC = () => {
             <p className="text-sm text-neutral-400 mt-1">Avg. order value</p>
             <div className="mt-4 pt-3 border-t border-neutral-100">
               <p className="text-[11px] text-neutral-400">
-                Across <span className="font-semibold text-neutral-600">{monthlyComparison.currentMonth.orders} orders</span>
+                Across <span className="font-semibold text-neutral-600">{currentStats.orders} orders</span>
               </p>
             </div>
           </motion.div>
 
-          {/* Stock alerts — expandable */}
-          <motion.div
-            variants={itemV}
-            className={[
-              'bg-white rounded-xl border p-5 shadow-sm transition-all',
+          {/* Stock alerts */}
+          <motion.div variants={itemV}
+            className={`bg-white rounded-xl border p-5 shadow-sm transition-all ${
               lowStockProducts.length > 0
                 ? 'border-amber-200 hover:border-amber-300 hover:shadow-amber-100/50 hover:shadow-md'
-                : 'border-neutral-200 hover:border-neutral-300 hover:shadow-md',
-            ].join(' ')}
-          >
+                : 'border-neutral-200 hover:border-neutral-300 hover:shadow-md'
+            }`}>
             <div className="flex items-start justify-between mb-4">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                 lowStockProducts.length > 0 ? 'bg-amber-50' : 'bg-neutral-100'
@@ -384,7 +449,7 @@ const AnalyticsDashboard: React.FC = () => {
                 <AlertCircle className={`w-5 h-5 ${lowStockProducts.length > 0 ? 'text-amber-500' : 'text-neutral-400'}`} />
               </div>
               <button
-                onClick={() => setShowAllStock(!showAllStock)}
+                onClick={() => setShowAllStock(v => !v)}
                 className="p-1 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
               >
                 {showAllStock ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -396,8 +461,6 @@ const AnalyticsDashboard: React.FC = () => {
             <p className="text-sm text-neutral-400 mt-1">
               {lowStockProducts.length === 0 ? 'All items well stocked' : 'Items need restocking'}
             </p>
-
-            {/* Expandable stock list */}
             <AnimatePresence initial={false}>
               {showAllStock && (
                 <motion.div
@@ -407,8 +470,8 @@ const AnalyticsDashboard: React.FC = () => {
                   transition={{ duration: 0.22, ease: 'easeInOut' }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-3 pt-3 border-t border-neutral-100 space-y-2 max-h-36 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-200">
-                    {(showAllStock ? allStockProducts : lowStockProducts).map((p) => (
+                  <div className="mt-3 pt-3 border-t border-neutral-100 space-y-2 max-h-36 overflow-y-auto">
+                    {(showAllStock ? allStockProducts : lowStockProducts).map(p => (
                       <div key={p.id} className="flex items-center justify-between gap-2">
                         <span className="text-xs text-neutral-600 truncate">{p.name}</span>
                         <span className={`text-xs font-semibold flex-shrink-0 tabular-nums ${
@@ -425,13 +488,12 @@ const AnalyticsDashboard: React.FC = () => {
           </motion.div>
         </motion.div>
 
-        {/* ── Bottom two-column sections ──────────────────────────────────────── */}
+        {/* ── Bottom sections ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           {/* Top selling products */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
             className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden"
           >
@@ -451,16 +513,10 @@ const AnalyticsDashboard: React.FC = () => {
                   const maxQty = topSellingProducts[0].quantity;
                   const pct    = maxQty > 0 ? (product.quantity / maxQty) * 100 : 0;
                   return (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-neutral-50 transition-colors"
-                    >
-                      {/* Rank badge */}
+                    <div key={i} className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-neutral-50 transition-colors">
                       <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${rankCls(i)}`}>
                         {i + 1}
                       </div>
-
-                      {/* Info + animated bar */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <p className="text-sm font-medium text-neutral-800 truncate">{product.name}</p>
@@ -474,7 +530,7 @@ const AnalyticsDashboard: React.FC = () => {
                               initial={{ width: 0 }}
                               animate={{ width: `${pct}%` }}
                               transition={{ duration: 0.65, delay: 0.38 + i * 0.08, ease: 'easeOut' }}
-                              className="h-full bg-primary/70 rounded-full"
+                              className="h-full bg-neutral-800 rounded-full"
                             />
                           </div>
                           <span className="text-[11px] text-neutral-400 tabular-nums flex-shrink-0">
@@ -501,8 +557,7 @@ const AnalyticsDashboard: React.FC = () => {
 
           {/* Latest orders */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.36, duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
             className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden"
           >
@@ -525,8 +580,7 @@ const AnalyticsDashboard: React.FC = () => {
                   return (
                     <motion.div
                       key={order.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                       transition={{ delay: 0.4 + i * 0.05 }}
                       className="flex items-center gap-4 px-5 py-3.5 hover:bg-neutral-50/80 transition-colors"
                     >
@@ -563,7 +617,6 @@ const AnalyticsDashboard: React.FC = () => {
               </div>
             )}
           </motion.div>
-
         </div>
       </div>
     </AdminLayout>
