@@ -26,26 +26,29 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
   useEffect(() => { setDraft(String(item.quantity)); }, [item.quantity]);
 
   const commit = (raw: string) => {
-    const n       = parseInt(raw, 10);
+    const n       = parseInt(raw.replace(/[^0-9]/g, ''), 10);
     const clamped = Math.max(1, Math.min(item.product.stock, isNaN(n) ? 1 : n));
     onSetQty(item.product.id, item.variant?.id, clamped);
     setDraft(String(clamped));
   };
 
+  // Pixel width: enough for digit count, min 28px
+  const inputW = Math.max(28, draft.replace(/[^0-9]/g, '').length * 11 + 12);
+
   return (
     <div className="bg-neutral-50 rounded-xl p-2.5 border border-neutral-100">
       {/* Name row */}
       <div className="flex justify-between items-start mb-1.5 gap-2">
-        <h3 className="font-medium text-neutral-900 text-xs leading-snug flex-1">
+        <h3 style={{ color: '#171717' }} className="font-medium text-xs leading-snug flex-1">
           {item.product.name}
           {item.variant && (
-            <span className="text-neutral-400 font-normal"> · {item.variant.size}</span>
+            <span style={{ color: '#a3a3a3' }} className="font-normal"> · {item.variant.size}</span>
           )}
         </h3>
         <button
           onClick={() => onRemove(item.product.id, item.variant?.id)}
-          className="p-1 text-neutral-300 hover:text-red-500 active:text-red-600
-            transition-colors touch-manipulation flex-shrink-0"
+          style={{ color: '#d4d4d4' }}
+          className="p-1 hover:text-red-500 active:text-red-600 transition-colors touch-manipulation flex-shrink-0"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -54,34 +57,46 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
       {/* Stepper row */}
       <div className="flex items-center justify-between gap-2">
         {/*
-          No overflow-hidden on the wrapper — instead border-radius is applied
-          directly to the first/last button so the input is never clipped.
-          Input width is driven by ch units so it grows with digit count.
+          Wrapper: NO overflow-hidden — border-radius applied per-button.
+          All colors via inline style to prevent mobile Tailwind cascade issues.
+          type="text" inputMode="numeric" avoids all type="number" mobile bugs.
         */}
-        <div className="inline-flex items-center h-8 border border-neutral-200 rounded-lg
-          bg-white flex-shrink-0
-          focus-within:border-green-400 focus-within:ring-1 focus-within:ring-green-400/20
-          transition-all">
-
+        <div
+          className="inline-flex items-center flex-shrink-0"
+          style={{
+            height: 32,
+            border: '1px solid #e5e5e5',
+            borderRadius: 8,
+            backgroundColor: '#ffffff',
+          }}
+        >
+          {/* − */}
           <button
             onClick={() => onUpdateQty(item.product.id, item.variant?.id, -1)}
             disabled={item.quantity <= 1}
-            className="w-8 h-8 flex items-center justify-center rounded-l-[7px]
-              border-r border-neutral-200 text-neutral-500
-              hover:bg-neutral-100 hover:text-neutral-800 active:bg-neutral-200
-              transition-colors touch-manipulation
+            className="flex items-center justify-center touch-manipulation
+              hover:bg-neutral-100 active:bg-neutral-200 transition-colors
               disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+            style={{
+              width: 32, height: 32,
+              color: '#737373',
+              borderRight: '1px solid #e5e5e5',
+              borderRadius: '7px 0 0 7px',
+              background: 'transparent',
+              border: 'none',
+              borderRight: '1px solid #e5e5e5',
+            }}
           >
-            <Minus className="w-3 h-3" />
+            <Minus style={{ width: 12, height: 12 }} />
           </button>
 
+          {/* Input */}
           <input
-            type="number"
+            type="text"
             inputMode="numeric"
-            min={1}
-            max={item.product.stock}
+            pattern="[0-9]*"
             value={draft}
-            onChange={e => setDraft(e.target.value)}
+            onChange={e => setDraft(e.target.value.replace(/[^0-9]/g, ''))}
             onFocus={e  => e.target.select()}
             onBlur={e   => commit(e.target.value)}
             onKeyDown={e => {
@@ -91,30 +106,47 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
                 (e.target as HTMLInputElement).blur();
               }
             }}
-            onWheel={e => (e.target as HTMLInputElement).blur()}
-            style={{ width: `${Math.max(2, String(draft).length)}ch` }}
-            className="min-w-[2rem] h-8 px-1 text-center text-sm font-bold
-              text-neutral-900 bg-transparent border-none outline-none
-              tabular-nums leading-none
-              [appearance:textfield]
-              [&::-webkit-outer-spin-button]:appearance-none
-              [&::-webkit-inner-spin-button]:appearance-none"
+            style={{
+              width:           inputW,
+              minWidth:        28,
+              height:          32,
+              textAlign:       'center',
+              fontSize:        14,
+              fontWeight:      700,
+              color:           '#171717',
+              backgroundColor: 'transparent',
+              border:          'none',
+              outline:         'none',
+              padding:         '0 4px',
+              fontFamily:      'inherit',
+            }}
           />
 
+          {/* + */}
           <button
             onClick={() => onUpdateQty(item.product.id, item.variant?.id, 1)}
             disabled={item.quantity >= item.product.stock}
-            className="w-8 h-8 flex items-center justify-center rounded-r-[7px]
-              border-l border-neutral-200 text-neutral-500
-              hover:bg-neutral-100 hover:text-neutral-800 active:bg-neutral-200
-              transition-colors touch-manipulation
+            className="flex items-center justify-center touch-manipulation
+              hover:bg-neutral-100 active:bg-neutral-200 transition-colors
               disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+            style={{
+              width: 32, height: 32,
+              color: '#737373',
+              borderLeft: '1px solid #e5e5e5',
+              borderRadius: '0 7px 7px 0',
+              background: 'transparent',
+              border: 'none',
+              borderLeft: '1px solid #e5e5e5',
+            }}
           >
-            <Plus className="w-3 h-3" />
+            <Plus style={{ width: 12, height: 12 }} />
           </button>
         </div>
 
-        <span className="font-bold text-xs text-neutral-900 tabular-nums flex-shrink-0">
+        <span
+          style={{ color: '#171717', fontWeight: 700, fontSize: 12 }}
+          className="tabular-nums flex-shrink-0"
+        >
           KES {(item.product.price * item.quantity).toLocaleString()}
         </span>
       </div>
@@ -150,7 +182,6 @@ const CartPanel = memo(({
   onDiscountApplied, onCheckout, userId, subtotal, discountTotal, total,
 }: CartPanelProps) => (
   <div className="h-full bg-white flex flex-col">
-    {/* Header */}
     <div className="px-4 py-3 border-b border-neutral-200 flex-shrink-0">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-bold text-neutral-900 flex items-center gap-2">
@@ -181,7 +212,6 @@ const CartPanel = memo(({
       </div>
     </div>
 
-    {/* Items */}
     <div className="flex-1 overflow-auto">
       {cart.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full py-10 px-4 text-center">
@@ -213,7 +243,6 @@ const CartPanel = memo(({
       )}
     </div>
 
-    {/* Footer */}
     <div className="border-t border-neutral-200 p-3 space-y-3 flex-shrink-0">
       <div className="space-y-1">
         <div className="flex justify-between text-xs">
@@ -287,7 +316,6 @@ const POSInterface = () => {
   const [cashTendered, setCashTendered] = useState('');
   const [cashError,    setCashError]    = useState('');
 
-  // ── Auth guard ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user || !['admin', 'worker'].includes(user.role)) navigate('/');
   }, [user, navigate]);
@@ -300,7 +328,6 @@ const POSInterface = () => {
     return () => document.removeEventListener('fullscreenchange', h);
   }, []);
 
-  // ── Data ─────────────────────────────────────────────────────────────────────
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
@@ -317,7 +344,6 @@ const POSInterface = () => {
     finally { setLoading(false); }
   };
 
-  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleAddToCart = useCallback((product: Product) => {
     if (product.stock <= 0) { alert('Out of stock'); return; }
     const existing = cart.find(i => i.product.id === product.id);
@@ -356,7 +382,6 @@ const POSInterface = () => {
     else await document.exitFullscreen().catch(console.error);
   }, []);
 
-  // ── Totals ───────────────────────────────────────────────────────────────────
   const subtotal      = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const discountTotal = appliedDiscounts.reduce((s, d) => s + d.savings, 0);
   const total         = subtotal - discountTotal;
@@ -365,7 +390,6 @@ const POSInterface = () => {
   const cashChange = Math.max(0, cashNum - total);
   const cashOk     = cashNum >= total && cashNum > 0;
 
-  // ── Phone helpers ─────────────────────────────────────────────────────────────
   const validatePhone = (p: string) => /^(254|0)?[17]\d{8}$/.test(p.replace(/\s/g, ''));
   const formatPhone   = (p: string) => {
     let c = p.replace(/\s/g, '');
@@ -380,10 +404,8 @@ const POSInterface = () => {
     setCashTendered(''); setCashError('');
   };
 
-  // ── Checkout ─────────────────────────────────────────────────────────────────
   const handleCheckout = async () => {
     if (cart.length === 0) { alert('Cart is empty'); return; }
-
     if (paymentMethod === 'mpesa') {
       if (!mpesaPhone.trim()) { setPhoneError('Phone number required for M-Pesa'); return; }
       if (!validatePhone(mpesaPhone)) { setPhoneError('Invalid number. Use: 0712345678 or 254712345678'); return; }
@@ -484,7 +506,6 @@ const POSInterface = () => {
     }
   };
 
-  // ── Derived ───────────────────────────────────────────────────────────────────
   const categories       = ['all', ...new Set(products.map(p => p.category))];
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -499,22 +520,18 @@ const POSInterface = () => {
     onCheckout: handleOpenCheckout, userId: user?.id, subtotal, discountTotal, total,
   };
 
-  // ── Loading ───────────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
       <div className="w-9 h-9 border-2 border-neutral-300 border-t-green-600 rounded-full animate-spin" />
     </div>
   );
 
-  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div ref={containerRef} className="min-h-screen bg-neutral-50">
       <div className="flex h-screen overflow-hidden">
 
         {/* ── Product column ──────────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-          {/* Header */}
           <div className="bg-white border-b border-neutral-200 px-3 sm:px-4 py-2.5 flex-shrink-0">
             <div className="flex items-center justify-between mb-2.5">
               <h1 className="text-sm sm:text-base font-bold text-neutral-900">POS Terminal</h1>
@@ -543,8 +560,6 @@ const POSInterface = () => {
                 </button>
               </div>
             </div>
-
-            {/* Search + filter */}
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5
@@ -588,7 +603,6 @@ const POSInterface = () => {
                     ? product.price - (product.price * product.discount.percentage / 100)
                     : product.price;
                   const inCart = cart.find(i => i.product.id === product.id);
-
                   return (
                     <motion.button
                       key={product.id}
@@ -654,17 +668,13 @@ const POSInterface = () => {
           </div>
         </div>
 
-        {/* ── Desktop cart sidebar ─────────────────────────────────────────── */}
+        {/* ── Desktop cart ─────────────────────────────────────────────────── */}
         <div className="hidden lg:block w-72 xl:w-80 border-l border-neutral-200 flex-shrink-0">
           <CartPanel {...cartPanelProps} />
         </div>
       </div>
 
-      {/*
-        ── Floating cart button — mobile only ──────────────────────────────────
-        Always visible when cart has items.
-        Product tap bumps FAB only — does NOT open the drawer.
-      */}
+      {/* ── Floating cart FAB ───────────────────────────────────────────────── */}
       <AnimatePresence>
         {cart.length > 0 && (
           <motion.button
@@ -675,25 +685,20 @@ const POSInterface = () => {
             transition={{ type: 'spring', stiffness: 400, damping: 28 }}
             onClick={() => setShowMobileCart(true)}
             className="lg:hidden fixed z-40 touch-manipulation"
-            style={{
-              bottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
-              right:  '1rem',
-            }}
+            style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom))', right: '1rem' }}
           >
             <motion.div
               key={addBump}
               initial={addBump > 0 ? { scale: 1.22 } : { scale: 1 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-              className="flex items-center gap-2.5 pl-3 pr-4 py-3
-                bg-green-600 hover:bg-green-700 active:bg-green-800 text-white
-                rounded-full shadow-xl shadow-green-900/30 transition-colors"
+              className="flex items-center gap-2.5 pl-3 pr-4 py-3 bg-green-600 hover:bg-green-700
+                active:bg-green-800 text-white rounded-full shadow-xl shadow-green-900/30 transition-colors"
             >
               <div className="relative">
                 <ShoppingCart className="w-4 h-4" />
                 <span className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 text-white
-                  rounded-full text-[9px] font-bold flex items-center justify-center
-                  border border-green-600">
+                  rounded-full text-[9px] font-bold flex items-center justify-center border border-green-600">
                   {cart.length > 99 ? '99+' : cart.length}
                 </span>
               </div>
@@ -751,7 +756,6 @@ const POSInterface = () => {
               <div className="sm:hidden flex justify-center pt-2.5 pb-1">
                 <div className="w-8 h-1 bg-neutral-300 rounded-full" />
               </div>
-
               <div className="p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-base font-bold text-neutral-900">Complete Payment</h2>
@@ -763,7 +767,6 @@ const POSInterface = () => {
                   </button>
                 </div>
 
-                {/* Order summary */}
                 <div className="bg-neutral-50 rounded-xl p-3 mb-4 space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-neutral-500">Subtotal</span>
@@ -783,7 +786,6 @@ const POSInterface = () => {
                   </div>
                 </div>
 
-                {/* Payment method */}
                 <div className="mb-4">
                   <label className="block text-[10px] font-semibold text-neutral-500
                     uppercase tracking-wider mb-2">
@@ -812,7 +814,6 @@ const POSInterface = () => {
                   </div>
                 </div>
 
-                {/* Cash */}
                 <AnimatePresence>
                   {paymentMethod === 'cash' && (
                     <motion.div
@@ -844,7 +845,6 @@ const POSInterface = () => {
                             </p>
                           )}
                         </div>
-
                         <div>
                           <p className="text-[10px] text-neutral-400 mb-1.5">Quick amounts</p>
                           <div className="flex flex-wrap gap-1.5">
@@ -864,7 +864,6 @@ const POSInterface = () => {
                             ))}
                           </div>
                         </div>
-
                         <AnimatePresence>
                           {cashNum > 0 && (
                             <motion.div
@@ -899,7 +898,6 @@ const POSInterface = () => {
                   )}
                 </AnimatePresence>
 
-                {/* M-Pesa */}
                 <AnimatePresence>
                   {paymentMethod === 'mpesa' && (
                     <motion.div
@@ -937,13 +935,11 @@ const POSInterface = () => {
                   )}
                 </AnimatePresence>
 
-                {/* Actions */}
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setShowCheckout(false); resetPaymentState(); }}
                     className="flex-1 py-3 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
-                      text-neutral-700 rounded-xl font-semibold transition-colors
-                      touch-manipulation text-sm"
+                      text-neutral-700 rounded-xl font-semibold transition-colors touch-manipulation text-sm"
                   >
                     Cancel
                   </button>
@@ -993,7 +989,6 @@ const POSInterface = () => {
                     <X className="w-4 h-4 text-neutral-500" />
                   </button>
                 </div>
-
                 <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl
                   border border-emerald-200 mb-4">
                   <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center
@@ -1012,7 +1007,6 @@ const POSInterface = () => {
                     )}
                   </div>
                 </div>
-
                 <ReceiptPrinter
                   {...completedOrder}
                   onPrintComplete={() => { setShowReceipt(false); setCompletedOrder(null); }}
