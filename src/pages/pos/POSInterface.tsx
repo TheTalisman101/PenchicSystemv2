@@ -5,19 +5,20 @@ import { supabase } from '../../lib/supabase';
 import {
   Search, ShoppingCart, Trash2, Plus, Minus,
   CreditCard, Smartphone, Banknote, Package,
-  LogOut, X, Maximize, Minimize, CheckCircle2, AlertCircle,
+  LogOut, X, Maximize, Minimize, CheckCircle2,
+  AlertCircle, AlertTriangle, Info,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DiscountCalculator from '../../components/pos/DiscountCalculator';
 import ReceiptPrinter from '../../components/pos/ReceiptPrinter';
 import { Product, CartItem } from '../../types';
 
-// ── Fullscreen helpers (cross-browser + mobile) ───────────────────────────────
+// ── Fullscreen helpers ────────────────────────────────────────────────────────
 const fsEnter = (el: HTMLElement) => {
-  if      (el.requestFullscreen)                el.requestFullscreen();
-  else if ((el as any).webkitRequestFullscreen)  (el as any).webkitRequestFullscreen();
-  else if ((el as any).mozRequestFullScreen)     (el as any).mozRequestFullScreen();
-  else if ((el as any).msRequestFullscreen)      (el as any).msRequestFullscreen();
+  if      (el.requestFullscreen)               el.requestFullscreen();
+  else if ((el as any).webkitRequestFullscreen) (el as any).webkitRequestFullscreen();
+  else if ((el as any).mozRequestFullScreen)    (el as any).mozRequestFullScreen();
+  else if ((el as any).msRequestFullscreen)     (el as any).msRequestFullscreen();
 };
 const fsExit = () => {
   if      (document.exitFullscreen)                document.exitFullscreen();
@@ -26,16 +27,138 @@ const fsExit = () => {
   else if ((document as any).msExitFullscreen)     (document as any).msExitFullscreen();
 };
 const fsElement = () =>
-  document.fullscreenElement              ||
+  document.fullscreenElement               ||
   (document as any).webkitFullscreenElement ||
-  (document as any).mozFullScreenElement    ||
-  (document as any).msFullscreenElement     ||
+  (document as any).mozFullScreenElement   ||
+  (document as any).msFullscreenElement    ||
   null;
 const fsSupported = () =>
   !!(document.documentElement.requestFullscreen ||
-     (document.documentElement as any).webkitRequestFullscreen ||
-     (document.documentElement as any).mozRequestFullScreen ||
-     (document.documentElement as any).msRequestFullscreen);
+    (document.documentElement as any).webkitRequestFullscreen ||
+    (document.documentElement as any).mozRequestFullScreen    ||
+    (document.documentElement as any).msRequestFullscreen);
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+interface ToastData { id: number; type: ToastType; message: string; }
+
+const TOAST_ICONS: Record<ToastType, React.ReactNode> = {
+  success: <CheckCircle2 className="w-4 h-4 flex-shrink-0" />,
+  error:   <AlertCircle  className="w-4 h-4 flex-shrink-0" />,
+  warning: <AlertTriangle className="w-4 h-4 flex-shrink-0" />,
+  info:    <Info          className="w-4 h-4 flex-shrink-0" />,
+};
+const TOAST_COLORS: Record<ToastType, string> = {
+  success: 'bg-emerald-600 text-white',
+  error:   'bg-red-600 text-white',
+  warning: 'bg-amber-500 text-white',
+  info:    'bg-neutral-800 text-white',
+};
+
+const ToastContainer = memo(({ toasts, onDismiss }: {
+  toasts: ToastData[];
+  onDismiss: (id: number) => void;
+}) => (
+  <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-none">
+    <AnimatePresence>
+      {toasts.map(t => (
+        <motion.div
+          key={t.id}
+          initial={{ opacity: 0, y: -16, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0,   scale: 1    }}
+          exit={{    opacity: 0, y: -8,  scale: 0.96 }}
+          transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+          className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl
+            pointer-events-auto ${TOAST_COLORS[t.type]}`}
+        >
+          {TOAST_ICONS[t.type]}
+          <p className="text-sm font-medium flex-1 leading-snug">{t.message}</p>
+          <button
+            onClick={() => onDismiss(t.id)}
+            className="opacity-70 hover:opacity-100 transition-opacity touch-manipulation ml-1 flex-shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </motion.div>
+      ))}
+    </AnimatePresence>
+  </div>
+));
+ToastContainer.displayName = 'ToastContainer';
+
+// ── ConfirmDialog ─────────────────────────────────────────────────────────────
+interface ConfirmDialogProps {
+  open:        boolean;
+  title:       string;
+  message:     string;
+  confirmLabel?: string;
+  cancelLabel?:  string;
+  danger?:       boolean;
+  onConfirm:   () => void;
+  onCancel:    () => void;
+}
+const ConfirmDialog = memo(({
+  open, title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel',
+  danger = false, onConfirm, onCancel,
+}: ConfirmDialogProps) => (
+  <AnimatePresence>
+    {open && (
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]
+          flex items-end sm:items-center justify-center sm:p-4"
+        onClick={onCancel}
+      >
+        <motion.div
+          initial={{ y: 40, opacity: 0, scale: 0.97 }}
+          animate={{ y: 0,  opacity: 1, scale: 1    }}
+          exit={{    y: 40, opacity: 0, scale: 0.97 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          onClick={e => e.stopPropagation()}
+          className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          <div className="sm:hidden flex justify-center pt-2.5 pb-1">
+            <div className="w-8 h-1 bg-neutral-300 rounded-full" />
+          </div>
+          <div className="p-5 sm:p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0
+                ${danger ? 'bg-red-100' : 'bg-amber-100'}`}>
+                <AlertTriangle className={`w-4.5 h-4.5 ${danger ? 'text-red-600' : 'text-amber-600'}`} style={{ width: 18, height: 18 }} />
+              </div>
+              <div>
+                <h3 className="font-bold text-neutral-900 text-sm">{title}</h3>
+                <p className="text-neutral-500 text-xs mt-1 leading-relaxed">{message}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={onCancel}
+                className="flex-1 py-2.5 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
+                  text-neutral-700 rounded-xl font-semibold text-sm transition-colors touch-manipulation"
+              >
+                {cancelLabel}
+              </button>
+              <button
+                onClick={onConfirm}
+                className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-colors
+                  touch-manipulation text-white
+                  ${danger
+                    ? 'bg-red-600 hover:bg-red-700 active:bg-red-800'
+                    : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
+                  }`}
+              >
+                {confirmLabel}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+));
+ConfirmDialog.displayName = 'ConfirmDialog';
 
 // ── CartItemRow ────────────────────────────────────────────────────────────────
 interface CartItemRowProps {
@@ -80,7 +203,7 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
       <div className="flex items-center justify-between gap-2">
         <div
           className="inline-flex items-center flex-shrink-0"
-          style={{ height: 32, border: '1px solid #e5e5e5', borderRadius: 8, backgroundColor: '#ffffff' }}
+          style={{ height: 32, border: '1px solid #e5e5e5', borderRadius: 8, backgroundColor: '#fff' }}
         >
           <button
             onClick={() => onUpdateQty(item.product.id, item.variant?.id, -1)}
@@ -88,48 +211,40 @@ const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRow
             className="flex items-center justify-center touch-manipulation
               hover:bg-neutral-100 active:bg-neutral-200 transition-colors
               disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
-            style={{ width: 32, height: 32, color: '#737373', borderRight: '1px solid #e5e5e5',
-              borderRadius: '7px 0 0 7px', background: 'transparent' }}
+            style={{ width: 32, height: 32, color: '#737373',
+              borderRight: '1px solid #e5e5e5', borderRadius: '7px 0 0 7px', background: 'transparent' }}
           >
             <Minus style={{ width: 12, height: 12 }} />
           </button>
-
           <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
+            type="text" inputMode="numeric" pattern="[0-9]*"
             value={draft}
             onChange={e => setDraft(e.target.value.replace(/[^0-9]/g, ''))}
             onFocus={e  => e.target.select()}
             onBlur={e   => commit(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter')  (e.target as HTMLInputElement).blur();
-              if (e.key === 'Escape') {
-                setDraft(String(item.quantity));
-                (e.target as HTMLInputElement).blur();
-              }
+              if (e.key === 'Escape') { setDraft(String(item.quantity)); (e.target as HTMLInputElement).blur(); }
             }}
             style={{
-              width: inputW, minWidth: 28, height: 32,
-              textAlign: 'center', fontSize: 14, fontWeight: 700,
-              color: '#171717', backgroundColor: 'transparent',
-              border: 'none', outline: 'none', padding: '0 4px', fontFamily: 'inherit',
+              width: inputW, minWidth: 28, height: 32, textAlign: 'center',
+              fontSize: 14, fontWeight: 700, color: '#171717',
+              backgroundColor: 'transparent', border: 'none', outline: 'none',
+              padding: '0 4px', fontFamily: 'inherit',
             }}
           />
-
           <button
             onClick={() => onUpdateQty(item.product.id, item.variant?.id, 1)}
             disabled={item.quantity >= item.product.stock}
             className="flex items-center justify-center touch-manipulation
               hover:bg-neutral-100 active:bg-neutral-200 transition-colors
               disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
-            style={{ width: 32, height: 32, color: '#737373', borderLeft: '1px solid #e5e5e5',
-              borderRadius: '0 7px 7px 0', background: 'transparent' }}
+            style={{ width: 32, height: 32, color: '#737373',
+              borderLeft: '1px solid #e5e5e5', borderRadius: '0 7px 7px 0', background: 'transparent' }}
           >
             <Plus style={{ width: 12, height: 12 }} />
           </button>
         </div>
-
         <span style={{ color: '#171717', fontWeight: 700, fontSize: 12 }} className="tabular-nums flex-shrink-0">
           KES {(item.product.price * item.quantity).toLocaleString()}
         </span>
@@ -254,6 +369,8 @@ const quickAmounts = (total: number): number[] => {
   return [...new Set([total, ...rounded])].slice(0, 5);
 };
 
+let toastIdCounter = 0;
+
 // ── POSInterface ───────────────────────────────────────────────────────────────
 const POSInterface = () => {
   const navigate           = useNavigate();
@@ -279,11 +396,38 @@ const POSInterface = () => {
   const [completedOrder,   setCompletedOrder]   = useState<any>(null);
   const [showReceipt,      setShowReceipt]      = useState(false);
   const [addBump,          setAddBump]          = useState(0);
+  const [toasts,           setToasts]           = useState<ToastData[]>([]);
+  const [confirmDialog,    setConfirmDialog]    = useState<{
+    open: boolean; title: string; message: string;
+    confirmLabel?: string; danger?: boolean; onConfirm: () => void;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const [mpesaPhone,   setMpesaPhone]   = useState('');
   const [phoneError,   setPhoneError]   = useState('');
   const [cashTendered, setCashTendered] = useState('');
   const [cashError,    setCashError]    = useState('');
+
+  // ── Toast helpers ─────────────────────────────────────────────────────────────
+  const showToast = useCallback((type: ToastType, message: string, duration = 3500) => {
+    const id = ++toastIdCounter;
+    setToasts(prev => [...prev, { id, type, message }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration);
+  }, []);
+  const dismissToast = useCallback((id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // ── Confirm helper ────────────────────────────────────────────────────────────
+  const showConfirm = useCallback((
+    title: string, message: string,
+    onConfirm: () => void,
+    opts?: { confirmLabel?: string; danger?: boolean }
+  ) => {
+    setConfirmDialog({ open: true, title, message, onConfirm, ...opts });
+  }, []);
+  const closeConfirm = useCallback(() => {
+    setConfirmDialog(prev => ({ ...prev, open: false }));
+  }, []);
 
   // ── Auth guard ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -292,10 +436,8 @@ const POSInterface = () => {
 
   useEffect(() => { fetchProducts(); }, []);
 
-  // ── Fullscreen detection (all vendor prefixes) ───────────────────────────────
   useEffect(() => {
     setCanFullscreen(fsSupported());
-
     const onFsChange = () => setIsFullscreen(!!fsElement());
     document.addEventListener('fullscreenchange',       onFsChange);
     document.addEventListener('webkitfullscreenchange', onFsChange);
@@ -322,53 +464,56 @@ const POSInterface = () => {
         ...p,
         discount: discounts?.find(d => d.product_id === p.id) || null,
       })));
-    } catch (err) { console.error('fetchProducts:', err); }
+    } catch (err) {
+      console.error('fetchProducts:', err);
+      showToast('error', 'Failed to load products. Please refresh.');
+    }
     finally { setLoading(false); }
   };
 
-  // ── Fullscreen toggle ─────────────────────────────────────────────────────────
+  // ── Fullscreen ────────────────────────────────────────────────────────────────
   const toggleFullscreen = useCallback(async () => {
     try {
-      if (fsElement()) {
-        fsExit();
-      } else {
-        // Must request on the document element (not a div) for reliable cross-browser support
-        fsEnter(document.documentElement);
-      }
+      fsElement() ? fsExit() : fsEnter(document.documentElement);
     } catch (err) {
-      console.warn('Fullscreen request failed:', err);
+      showToast('warning', 'Fullscreen is not available on this device.');
     }
-  }, []);
+  }, [showToast]);
 
-  // ── Exit POS — confirm if cart has items ─────────────────────────────────────
+  // ── Exit POS ──────────────────────────────────────────────────────────────────
   const handleExitPOS = useCallback(() => {
     if (cart.length > 0) {
-      const confirmed = window.confirm(
-        `You have ${cart.length} item${cart.length !== 1 ? 's' : ''} in your cart.\n\nLeave anyway? Your cart will be cleared.`
+      showConfirm(
+        'Leave POS?',
+        `You have ${cart.length} item${cart.length !== 1 ? 's' : ''} in your cart. Leaving will clear your cart.`,
+        () => {
+          clearCart();
+          closeConfirm();
+          if (fsElement()) { fsExit(); setTimeout(() => navigate('/admin/dashboard'), 150); }
+          else navigate('/admin/dashboard');
+        },
+        { confirmLabel: 'Leave & Clear', danger: true }
       );
-      if (!confirmed) return;
-      clearCart();
-    }
-    // Exit fullscreen first if active, then navigate
-    if (fsElement()) {
-      fsExit();
-      // Give browser time to exit fullscreen before navigating
-      setTimeout(() => navigate('/admin/dashboard'), 150);
     } else {
-      navigate('/admin/dashboard');
+      if (fsElement()) { fsExit(); setTimeout(() => navigate('/admin/dashboard'), 150); }
+      else navigate('/admin/dashboard');
     }
-  }, [cart, clearCart, navigate]);
+  }, [cart, clearCart, navigate, showConfirm, closeConfirm]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleAddToCart = useCallback((product: Product) => {
-    if (product.stock <= 0) { alert('Out of stock'); return; }
+    if (product.stock <= 0) {
+      showToast('warning', `${product.name} is out of stock.`);
+      return;
+    }
     const existing = cart.find(i => i.product.id === product.id);
     if (existing && existing.quantity >= product.stock) {
-      alert('Cannot exceed available stock'); return;
+      showToast('warning', `Only ${product.stock} unit${product.stock !== 1 ? 's' : ''} available.`);
+      return;
     }
     addToCart({ product, quantity: 1 });
     setAddBump(n => n + 1);
-  }, [cart, addToCart]);
+  }, [cart, addToCart, showToast]);
 
   const handleRemoveFromCart  = useCallback((pid: string, vid?: string) =>
     removeFromCart(pid, vid), [removeFromCart]);
@@ -418,7 +563,8 @@ const POSInterface = () => {
 
   // ── Checkout ─────────────────────────────────────────────────────────────────
   const handleCheckout = async () => {
-    if (cart.length === 0) { alert('Cart is empty'); return; }
+    if (cart.length === 0) { showToast('warning', 'Your cart is empty.'); return; }
+
     if (paymentMethod === 'mpesa') {
       if (!mpesaPhone.trim()) { setPhoneError('Phone number required for M-Pesa'); return; }
       if (!validatePhone(mpesaPhone)) { setPhoneError('Invalid number. Use: 0712345678 or 254712345678'); return; }
@@ -461,8 +607,11 @@ const POSInterface = () => {
           if (mpesaErr || !mpesaData?.success) throw new Error(mpesaData?.message || 'M-Pesa failed');
           mpesaReference = mpesaData.data?.CheckoutRequestID || null;
           paymentStatus  = 'pending';
-          alert('Payment request sent. Enter your M-Pesa PIN to complete.');
-        } catch (e: any) { alert(`M-Pesa failed: ${e.message}`); throw e; }
+          showToast('info', 'M-Pesa prompt sent. Ask customer to enter their PIN.', 5000);
+        } catch (e: any) {
+          showToast('error', `M-Pesa failed: ${e.message}`, 6000);
+          throw e;
+        }
       }
 
       const { error: payErr } = await supabase.from('payments').insert([{
@@ -513,7 +662,7 @@ const POSInterface = () => {
       fetchProducts();
     } catch (err: any) {
       console.error('Checkout error:', err);
-      alert(err.message || 'Failed to process order.');
+      showToast('error', err.message || 'Failed to process order. Please try again.', 6000);
     } finally {
       setProcessing(false);
     }
@@ -542,6 +691,21 @@ const POSInterface = () => {
 
   return (
     <div ref={containerRef} className="min-h-screen bg-neutral-50">
+
+      {/* ── Toast stack ──────────────────────────────────────────────────────── */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* ── Confirm dialog ───────────────────────────────────────────────────── */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        danger={confirmDialog.danger}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
+
       <div className="flex h-screen overflow-hidden">
 
         {/* ── Product column ──────────────────────────────────────────────── */}
@@ -553,8 +717,6 @@ const POSInterface = () => {
                 <span className="hidden sm:block text-xs text-neutral-400 max-w-[140px] truncate">
                   {user?.email}
                 </span>
-
-                {/* Fullscreen — only render if browser supports it */}
                 {canFullscreen && (
                   <button
                     onClick={toggleFullscreen}
@@ -567,8 +729,6 @@ const POSInterface = () => {
                       : <Maximize className="w-3.5 h-3.5 text-neutral-600" />}
                   </button>
                 )}
-
-                {/* Exit POS — confirms if cart has items, exits fullscreen first */}
                 <button
                   onClick={handleExitPOS}
                   className="flex items-center gap-1 px-2 py-1.5 bg-neutral-100 hover:bg-neutral-200
@@ -580,15 +740,12 @@ const POSInterface = () => {
                 </button>
               </div>
             </div>
-
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5
                   text-neutral-400 pointer-events-none" />
                 <input
-                  type="text"
-                  placeholder="Search…"
-                  value={searchTerm}
+                  type="text" placeholder="Search…" value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl
                     text-sm text-neutral-900 placeholder:text-neutral-400
