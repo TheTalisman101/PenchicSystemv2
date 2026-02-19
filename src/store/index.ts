@@ -25,6 +25,7 @@ interface StoreState {
   addToCart: (item: CartItem) => void;
   removeFromCart: (productId: string, variantId?: string) => void;
   updateCartQuantity: (productId: string, variantId?: string, change: number) => void;
+  setCartQuantity: (productId: string, variantId: string | undefined, quantity: number) => void;
   clearCart: () => void;
 
   addViewedProduct: (product: Product) => void;
@@ -77,33 +78,36 @@ export const useStore = create<StoreState>()(
         }),
 
       updateCartQuantity: (productId, variantId, change) =>
-        set((state) => {
-          return {
-            ...state,
-            cart: state.cart.map((item) => {
-              if (
-                item.product.id === productId &&
-                (variantId ? item.variant?.id === variantId : !item.variant)
-              ) {
-                const newQuantity = item.quantity + change;
+        set((state) => ({
+          ...state,
+          cart: state.cart.map((item) => {
+            if (
+              item.product.id === productId &&
+              (variantId ? item.variant?.id === variantId : !item.variant)
+            ) {
+              const newQuantity = item.quantity + change;
+              if (newQuantity < 1 || newQuantity > item.product.stock) return item;
+              return { ...item, quantity: newQuantity };
+            }
+            return item;
+          }),
+        })),
 
-                if (newQuantity < 1) {
-                  return item;
-                }
-
-                if (newQuantity > item.product.stock) {
-                  return item;
-                }
-
-                return {
-                  ...item,
-                  quantity: newQuantity,
-                };
-              }
-              return item;
-            }),
-          };
-        }),
+      // Set an absolute quantity value (used by manual input)
+      setCartQuantity: (productId, variantId, quantity) =>
+        set((state) => ({
+          ...state,
+          cart: state.cart.map((item) => {
+            if (
+              item.product.id === productId &&
+              (variantId ? item.variant?.id === variantId : !item.variant)
+            ) {
+              const clamped = Math.max(1, Math.min(item.product.stock, quantity));
+              return { ...item, quantity: clamped };
+            }
+            return item;
+          }),
+        })),
 
       removeFromCart: (productId, variantId) =>
         set((state) => ({
