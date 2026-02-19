@@ -385,8 +385,8 @@ export default function Shop() {
 
                         {/* Quick view hint */}
                         <div className="absolute inset-x-0 bottom-0 flex justify-center pb-3 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
-                          <span className="bg-white/95 text-neutral-800 text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
-                            View details <ChevronRight className="w-3 h-3" />
+                          <span className="bg-white/95 text-neutral-800 text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg">
+                            View details →
                           </span>
                         </div>
                       </div>
