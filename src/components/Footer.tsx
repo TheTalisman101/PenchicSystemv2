@@ -24,7 +24,6 @@ const Footer = () => {
           color: rgba(255,255,255,0.55);
         }
 
-        /* Gradient accent line */
         .ft-strip {
           height: 2px;
           background: linear-gradient(90deg,
@@ -33,7 +32,6 @@ const Footer = () => {
           opacity: 0.7;
         }
 
-        /* ── Main grid ── */
         .ft-main {
           max-width: 1280px; margin: 0 auto;
           padding: 64px 24px 52px;
@@ -79,7 +77,6 @@ const Footer = () => {
           color: rgba(255,255,255,0.38); margin-bottom: 26px; max-width: 270px;
         }
 
-        /* Socials */
         .ft-socials { display: flex; gap: 8px; flex-wrap: wrap; }
         .ft-social {
           width: 36px; height: 36px; border-radius: 10px;
@@ -177,37 +174,13 @@ const Footer = () => {
         }
 
         .ft-map-frame {
-          position: relative; border-radius: 18px; overflow: hidden;
+          border-radius: 18px; overflow: hidden;
           border: 1px solid rgba(255,255,255,0.08); height: 280px;
           box-shadow: 0 12px 48px rgba(0,0,0,0.38);
         }
         .ft-map-frame iframe {
           width: 100%; height: 100%; border: none; display: block;
-          filter: saturate(0.8) brightness(0.85) hue-rotate(5deg);
-          transition: filter .4s ease;
         }
-        .ft-map-frame:hover iframe { filter: saturate(1) brightness(1); }
-        .ft-map-frame::after {
-          content: ''; position: absolute; inset: 0;
-          background: rgba(8,15,11,0.2); pointer-events: none;
-          transition: opacity .4s ease; border-radius: 18px;
-        }
-        .ft-map-frame:hover::after { opacity: 0; }
-
-        /* Map pin badge overlay */
-        .ft-map-pin {
-          position: absolute; bottom: 14px; left: 14px; z-index: 10;
-          display: flex; align-items: center; gap: 8px;
-          background: rgba(8,15,11,0.82); backdrop-filter: blur(12px);
-          border: 1px solid rgba(116,198,157,0.2); border-radius: 10px;
-          padding: 8px 12px; pointer-events: none;
-        }
-        .ft-map-pin-dot {
-          width: 8px; height: 8px; border-radius: 50%; background: #52b788;
-          flex-shrink: 0; box-shadow: 0 0 0 3px rgba(82,183,136,0.25);
-        }
-        .ft-map-pin-text { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); }
-        .ft-map-pin-sub  { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 1px; }
 
         /* ── Bottom bar ── */
         .ft-bottom-sep { height: 1px; background: rgba(255,255,255,0.06); }
@@ -394,14 +367,6 @@ const Footer = () => {
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
             />
-            {/* Floating pin badge */}
-            <div className="ft-map-pin">
-              <div className="ft-map-pin-dot" />
-              <div>
-                <div className="ft-map-pin-text">Penchic Farm</div>
-                <div className="ft-map-pin-sub">Kiboko Highway Hotel · A104</div>
-              </div>
-            </div>
           </div>
         </div>
 
