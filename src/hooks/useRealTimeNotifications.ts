@@ -37,20 +37,19 @@ type State = {
 };
 
 type Action =
-  | { type: 'ADD';          payload: Notification       }
-  | { type: 'SEED';         payload: Notification[]     }
-  | { type: 'MARK_READ';    id: string                  }
-  | { type: 'MARK_ALL_READ'                             }
-  | { type: 'CLEAR_ALL'                                 }
-  | { type: 'SET_CONNECTED'; value: boolean             }
-  | { type: 'SET_ERROR';    message: string | null      };
+  | { type: 'ADD';           payload: Notification   }
+  | { type: 'SEED';          payload: Notification[] }
+  | { type: 'MARK_READ';     id: string              }
+  | { type: 'MARK_ALL_READ'                          }
+  | { type: 'CLEAR_ALL'                              }
+  | { type: 'SET_CONNECTED'; value: boolean          }
+  | { type: 'SET_ERROR';     message: string | null  };
 
 const MAX_NOTIFICATIONS = 50;
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'ADD': {
-      // De-duplicate by id
       if (state.notifications.some(n => n.id === action.payload.id)) return state;
       return {
         ...state,
@@ -59,11 +58,14 @@ function reducer(state: State, action: Action): State {
     }
     case 'SEED': {
       const existingIds = new Set(state.notifications.map(n => n.id));
-      const fresh       = action.payload.filter(n => !existingIds.has(n.id));
-      const merged      = [...state.notifications, ...fresh]
-        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-        .slice(0, MAX_NOTIFICATIONS);
-      return { ...state, notifications: merged };
+      const incoming    = action.payload.filter(n => !existingIds.has(n.id));
+      if (!incoming.length) return state;
+      return {
+        ...state,
+        notifications: [...state.notifications, ...incoming]
+          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+          .slice(0, MAX_NOTIFICATIONS),
+      };
     }
     case 'MARK_READ':
       return {
@@ -92,9 +94,9 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-// ── Constants & helpers ────────────────────────────────────────────────────────
-const STORAGE_KEY          = 'admin_notifications';
-const MAX_RECONNECT        = 5;
+// ── Helpers ────────────────────────────────────────────────────────────────────
+const STORAGE_KEY   = 'admin_notifications';
+const MAX_RECONNECT = 5;
 
 function readStorage(): Notification[] {
   try {
@@ -112,27 +114,101 @@ function readStorage(): Notification[] {
 function writeStorage(notifications: Notification[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-  } catch { /* storage quota — fail silently */ }
+  } catch { /* quota exceeded — fail silently */ }
 }
 
-function fireBrowserNotification(n: Pick<Notification, 'id' | 'title' | 'message'>): void {
+function fireBrowserNotif(n: Pick<Notification, 'id' | 'title' | 'message'>): void {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
   if (window.Notification.permission === 'granted') {
     new window.Notification(n.title, { body: n.message, icon: '/favicon.ico', tag: n.id });
   }
 }
 
-function build(
-  partial: Omit<Notification, 'id' | 'timestamp' | 'read'>
-): Notification {
+/** Build a new Notification and fire a browser notification as a side-effect. */
+function build(partial: Omit<Notification, 'id' | 'timestamp' | 'read'>): Notification {
   const n: Notification = {
     ...partial,
     id:        crypto.randomUUID(),
     timestamp: new Date(),
     read:      false,
   };
-  fireBrowserNotification(n);
+  fireBrowserNotif(n);
   return n;
+}
+
+// ── Seed from DB (pure async fn, no hook deps) ────────────────────────────────
+async function seedFromDatabase(): Promise<Notification[]> {
+  const results: Notification[] = [];
+
+  try {
+    const [
+      { data: orders  },
+      { data: users   },
+      { data: lowStock },
+    ] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('id, total, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('profiles')
+        .select('id, email, role, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5),
+      supabase
+        .from('products')
+        .select('id, name, stock')
+        .lte('stock', 5)
+        .order('stock', { ascending: true })
+        .limit(10),
+    ]);
+
+    orders?.forEach(o => {
+      const total   = (o.total as number) ?? 0;
+      const isLarge = total >= 10_000;
+      results.push({
+        id:        `seed-order-${o.id as string}`,
+        type:      isLarge ? 'analytics_milestone' : 'order_update',
+        title:     isLarge ? 'Large Order Received' : 'Order Received',
+        message:   `Order #${(o.id as string).slice(0, 8).toUpperCase()} — KES ${total.toLocaleString('en-KE')} (${(o.status as string).toUpperCase()})`,
+        timestamp: new Date(o.created_at as string),
+        read:      true,
+        data:      o as Record<string, unknown>,
+      });
+    });
+
+    users?.forEach(u => {
+      results.push({
+        id:        `seed-user-${u.id as string}`,
+        type:      'new_user',
+        title:     'User Registered',
+        message:   `${u.email as string} joined as ${(u.role as string) ?? 'customer'}.`,
+        timestamp: new Date(u.created_at as string),
+        read:      true,
+        data:      u as Record<string, unknown>,
+      });
+    });
+
+    lowStock?.forEach(p => {
+      const stock = p.stock as number;
+      results.push({
+        id:        `seed-stock-${p.id as string}`,
+        type:      stock === 0 ? 'system_alert' : 'low_stock',
+        title:     stock === 0 ? 'Out of Stock'  : 'Low Stock Alert',
+        message:   stock === 0
+          ? `"${p.name as string}" is out of stock.`
+          : `"${p.name as string}" has ${stock} unit${stock === 1 ? '' : 's'} remaining.`,
+        timestamp: new Date(),
+        read:      true,
+        data:      p as Record<string, unknown>,
+      });
+    });
+  } catch (err) {
+    console.error('[useRealTimeNotifications] seed error:', err);
+  }
+
+  return results;
 }
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
@@ -143,46 +219,56 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
     connectionError: null,
   });
 
-  /*
-   * dispatchRef: channel callbacks capture this ref, never a stale closure.
-   * Every render updates dispatchRef.current, so callbacks always call the
-   * latest dispatch without needing to re-subscribe.
-   */
-  const dispatchRef       = useRef(dispatch);
-  dispatchRef.current     = dispatch;
+  // Stable ref so channel callbacks never capture a stale dispatch
+  const dispatchRef      = useRef(dispatch);
+  dispatchRef.current    = dispatch;
 
-  const channelsRef       = useRef<RealtimeChannel[]>([]);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectCount    = useRef(0);
-  const isMountedRef      = useRef(true);
+  const channelsRef      = useRef<RealtimeChannel[]>([]);
+  const timerRef         = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectCount   = useRef(0);
+  const isMountedRef     = useRef(true);
 
-  // ── Sync notifications → localStorage ────────────────────────────────────────
+  // ── Persist to localStorage whenever notifications change ────────────────────
   useEffect(() => {
     writeStorage(state.notifications);
   }, [state.notifications]);
 
-  // ── Request browser notification permission once ───────────────────────────
+  // ── Request browser notification permission once ──────────────────────────────
   useEffect(() => {
     if ('Notification' in window && window.Notification.permission === 'default') {
-      window.Notification.requestPermission();
+      void window.Notification.requestPermission();
     }
   }, []);
 
-  // ── Real-time subscription lifecycle ─────────────────────────────────────────
+  // ── Realtime lifecycle ────────────────────────────────────────────────────────
   useEffect(() => {
-    isMountedRef.current = true;
+    isMountedRef.current   = true;
     reconnectCount.current = 0;
 
-    // Seed immediately from localStorage, then hydrate from DB
+    // 1. Hydrate from localStorage immediately (sync)
     dispatchRef.current({ type: 'SEED', payload: readStorage() });
-    void seedFromDatabase();
 
+    // 2. Hydrate from DB (async) — dispatch result when resolved
+    seedFromDatabase().then(seed => {
+      if (isMountedRef.current)
+        dispatchRef.current({ type: 'SEED', payload: seed });
+    });
+
+    // 3. Subscribe to realtime
+    subscribe();
+
+    return () => {
+      isMountedRef.current = false;
+      teardown();
+    };
+
+    // ── Local helpers (access refs, no stale closures) ──────────────────────
     function teardown(): void {
       channelsRef.current.forEach(ch => supabase.removeChannel(ch));
       channelsRef.current = [];
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
       }
     }
 
@@ -190,24 +276,24 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
       if (!isMountedRef.current) return;
       if (reconnectCount.current >= MAX_RECONNECT) {
         dispatchRef.current({
-          type: 'SET_ERROR',
-          message: 'Unable to establish real-time connection after multiple attempts.',
+          type:    'SET_ERROR',
+          message: 'Unable to connect after several attempts. Please refresh.',
         });
         return;
       }
-      // Exponential backoff: 1 s, 2 s, 4 s, 8 s, 16 s (capped at 30 s)
+      // Exponential backoff: 1s → 2s → 4s → 8s → 16s (hard cap 30s)
       const delay = Math.min(1_000 * 2 ** reconnectCount.current, 30_000);
       reconnectCount.current += 1;
       dispatchRef.current({
-        type: 'SET_ERROR',
+        type:    'SET_ERROR',
         message: `Reconnecting… (attempt ${reconnectCount.current}/${MAX_RECONNECT})`,
       });
-      reconnectTimerRef.current = setTimeout(() => {
+      timerRef.current = setTimeout(() => {
         if (isMountedRef.current) { teardown(); subscribe(); }
       }, delay);
     }
 
-    function onChannelStatus(status: string): void {
+    function onStatus(status: string): void {
       if (!isMountedRef.current) return;
       if (status === 'SUBSCRIBED') {
         dispatchRef.current({ type: 'SET_CONNECTED', value: true });
@@ -222,7 +308,7 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
 
     function subscribe(): void {
       try {
-        // ── 1. New user registrations ────────────────────────────────────────
+        // ── profiles: new user registrations ────────────────────────────────
         const profiles = supabase
           .channel('rtn_profiles')
           .on(
@@ -239,10 +325,9 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
                 }),
               })
           )
-          .subscribe(onChannelStatus);
+          .subscribe(onStatus);
 
-        // ── 2. Orders: INSERT + UPDATE on one channel ────────────────────────
-        //    (Avoids a second channel listening to the same table for analytics)
+        // ── orders: new + updated ────────────────────────────────────────────
         const orders = supabase
           .channel('rtn_orders')
           .on(
@@ -285,9 +370,9 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
                 }),
               })
           )
-          .subscribe();
+          .subscribe(onStatus);
 
-        // ── 3. Products: low stock / out of stock ────────────────────────────
+        // ── products: low stock / out of stock ───────────────────────────────
         const products = supabase
           .channel('rtn_products')
           .on(
@@ -316,11 +401,11 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
               });
             }
           )
-          .subscribe();
+          .subscribe(onStatus);
 
         channelsRef.current = [profiles, orders, products];
       } catch (err) {
-        console.error('[useRealTimeNotifications] subscription error:', err);
+        console.error('[useRealTimeNotifications] subscribe error:', err);
         dispatchRef.current({
           type:    'SET_ERROR',
           message: 'Failed to establish real-time connection.',
@@ -328,14 +413,7 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
         scheduleReconnect();
       }
     }
-
-    subscribe();
-
-    return () => {
-      isMountedRef.current = false;
-      teardown();
-    };
-  }, []); // ← empty: stable mount/unmount lifecycle only
+  }, []); // mount/unmount only — all refs are stable
 
   // ── Actions ───────────────────────────────────────────────────────────────────
   const markAsRead = useCallback(
@@ -362,70 +440,4 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
     isConnected:     state.isConnected,
     connectionError: state.connectionError,
   };
-}
-
-// ── DB seed (outside hook to avoid closure dependency) ────────────────────────
-async function seedFromDatabase(): Promise<Notification[]> {
-  const results: Notification[] = [];
-  try {
-    const [{ data: orders }, { data: users }, { data: lowStock }] = await Promise.all([
-      supabase
-        .from('orders')
-        .select('id, total, status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(10),
-      supabase
-        .from('profiles')
-        .select('id, email, role, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('products')
-        .select('id, name, stock')
-        .lte('stock', 5)
-        .order('stock', { ascending: true })
-        .limit(10),
-    ]);
-
-    orders?.forEach(o =>
-      results.push({
-        id:        `seed-order-${o.id}`,
-        type:      (o.total ?? 0) >= 10_000 ? 'analytics_milestone' : 'order_update',
-        title:     (o.total ?? 0) >= 10_000 ? 'Large Order Received' : 'Order Received',
-        message:   `Order #${(o.id as string).slice(0, 8).toUpperCase()} — KES ${(o.total ?? 0).toLocaleString('en-KE')}`,
-        timestamp: new Date(o.created_at as string),
-        read:      true, // seeded history is pre-read
-        data:      o as Record<string, unknown>,
-      })
-    );
-
-    users?.forEach(u =>
-      results.push({
-        id:        `seed-user-${u.id}`,
-        type:      'new_user',
-        title:     'User Registered',
-        message:   `${u.email as string} joined as ${(u.role as string) ?? 'customer'}.`,
-        timestamp: new Date(u.created_at as string),
-        read:      true,
-        data:      u as Record<string, unknown>,
-      })
-    );
-
-    lowStock?.forEach(p =>
-      results.push({
-        id:        `seed-stock-${p.id}`,
-        type:      (p.stock as number) === 0 ? 'system_alert' : 'low_stock',
-        title:     (p.stock as number) === 0 ? 'Out of Stock' : 'Low Stock Alert',
-        message:   (p.stock as number) === 0
-                     ? `"${p.name as string}" is out of stock.`
-                     : `"${p.name as string}" has ${p.stock as number} units remaining.`,
-        timestamp: new Date(),
-        read:      true,
-        data:      p as Record<string, unknown>,
-      })
-    );
-  } catch (err) {
-    console.error('[seedFromDatabase] error:', err);
-  }
-  return results;
 }
