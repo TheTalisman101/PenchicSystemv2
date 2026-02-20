@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
   UserPlus, Pencil, Trash2, Shield, Search, Filter,
   ChevronLeft, ChevronRight, Calendar, Mail,
   User as UserIcon, CheckCircle, XCircle, X,
   AlertTriangle, Users, Crown, Briefcase, ShoppingBag,
-  RefreshCw, AlertCircle,
+  RefreshCw, AlertCircle, Ban,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -32,6 +32,28 @@ const ROLE_DESC: Record<Role, string> = {
   customer: 'Shopping and order management only',
 };
 
+// ── Status config ──────────────────────────────────────────────────────────────
+const STATUS_CFG: Record<Status, {
+  label: string;
+  dot: string;
+  text: string;
+  badgeCls: string;
+  Icon: React.FC<any>;
+}> = {
+  active:    {
+    label: 'Active',    dot: 'bg-emerald-500', text: 'text-emerald-600',
+    badgeCls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60', Icon: CheckCircle,
+  },
+  inactive:  {
+    label: 'Inactive',  dot: 'bg-red-400',     text: 'text-red-500',
+    badgeCls: 'bg-red-50 text-red-700 ring-1 ring-red-200/60',             Icon: XCircle,
+  },
+  suspended: {
+    label: 'Suspended', dot: 'bg-amber-400',   text: 'text-amber-600',
+    badgeCls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60',       Icon: Ban,
+  },
+};
+
 // ── Avatar helpers ─────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
   'bg-violet-100 text-violet-700', 'bg-sky-100 text-sky-700',
@@ -51,7 +73,6 @@ const StatSkeleton = () => (
   </div>
 );
 
-// RowSkeleton — hides Joined & Orders cells on mobile to match the responsive table
 const RowSkeleton = () => (
   <tr className="animate-pulse">
     <td className="px-3 sm:px-5 py-3 sm:py-4">
@@ -66,17 +87,15 @@ const RowSkeleton = () => (
     <td className="px-3 sm:px-5 py-3 sm:py-4">
       <div className="w-20 sm:w-24 h-5 sm:h-6 bg-neutral-100 rounded-full" />
     </td>
-    {/* Joined — hidden on mobile */}
     <td className="hidden sm:table-cell px-5 py-4">
       <div className="w-24 h-3 bg-neutral-100 rounded-full" />
     </td>
-    {/* Orders — hidden on mobile */}
     <td className="hidden sm:table-cell px-5 py-4">
       <div className="w-8 h-6 bg-neutral-100 rounded-full" />
     </td>
     <td className="px-3 sm:px-5 py-3 sm:py-4">
       <div className="flex justify-end gap-1 sm:gap-2">
-        {Array.from({ length: 3 }).map((_, i) => (
+        {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="w-6 h-6 sm:w-7 sm:h-7 bg-neutral-100 rounded-lg" />
         ))}
       </div>
@@ -92,30 +111,104 @@ const inputCls = (err?: string) =>
 const FieldError: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? <p className="text-[11px] text-red-500 mt-1 font-medium">{msg}</p> : null;
 
+// ── StatusPicker ───────────────────────────────────────────────────────────────
+interface StatusPickerProps {
+  userId: string;
+  currentStatus: Status;
+  isOpen: boolean;
+  isUpdating: boolean;
+  onToggle: (id: string | null) => void;
+  onSelect: (userId: string, status: Status) => void;
+}
+
+const StatusPicker: React.FC<StatusPickerProps> = ({
+  userId, currentStatus, isOpen, isUpdating, onToggle, onSelect,
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const cfg = STATUS_CFG[currentStatus];
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onToggle(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen, onToggle]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => onToggle(isOpen ? null : userId)}
+        disabled={isUpdating}
+        title="Change account status"
+        className={`p-1 sm:p-1.5 rounded-lg transition-colors disabled:opacity-40 ${cfg.text} hover:bg-neutral-100 active:bg-neutral-200`}
+      >
+        <cfg.Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: -4 }}
+            animate={{ opacity: 1, scale: 1,    y: 0  }}
+            exit={{    opacity: 0, scale: 0.92, y: -4 }}
+            transition={{ duration: 0.13 }}
+            className="absolute right-0 top-full mt-1.5 z-30 bg-white border border-neutral-200
+              rounded-xl shadow-xl shadow-neutral-900/10 overflow-hidden min-w-[140px]"
+          >
+            <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">
+              Set status
+            </p>
+            {(Object.entries(STATUS_CFG) as [Status, typeof STATUS_CFG[Status]][]).map(([status, c]) => (
+              <button
+                key={status}
+                onClick={() => { onSelect(userId, status); onToggle(null); }}
+                className={`flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold transition-colors
+                  hover:bg-neutral-50 active:bg-neutral-100 ${
+                  status === currentStatus ? 'text-neutral-900 bg-neutral-50/60' : 'text-neutral-600'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`} />
+                {c.label}
+                {status === currentStatus && (
+                  <CheckCircle className="w-3 h-3 ml-auto text-neutral-400" />
+                )}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const UserManagement = () => {
-  const [users,           setUsers]           = useState<UserProfile[]>([]);
-  const [loadingUsers,    setLoadingUsers]    = useState(true);
-  const [submitting,      setSubmitting]      = useState(false);
-  const [updatingUserId,  setUpdatingUserId]  = useState<string | null>(null);
-  const [searchTerm,      setSearchTerm]      = useState('');
-  const [roleFilter,      setRoleFilter]      = useState<'all' | Role>('all');
-  const [currentPage,     setCurrentPage]     = useState(1);
-  const [usersPerPage]                        = useState(10);
-  const [sortBy,          setSortBy]          = useState('created_at');
-  const [sortOrder,       setSortOrder]       = useState<'asc' | 'desc'>('desc');
-  const [expandedUserId,  setExpandedUserId]  = useState<string | null>(null);
-  const [editingUser,     setEditingUser]     = useState<UserProfile | null>(null);
-  const [showEditModal,   setShowEditModal]   = useState(false);
-  const [showAddModal,    setShowAddModal]    = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [bulkMode,        setBulkMode]        = useState(false);
-  const [selectedUsers,   setSelectedUsers]   = useState<string[]>([]);
-  const [toast,           setToast]           = useState<Toast | null>(null);
-  const [showPerms,       setShowPerms]       = useState(false);
-  const [editForm,        setEditForm]        = useState({ email: '', role: 'customer' as Role, status: 'active' as Status });
-  const [addForm,         setAddForm]         = useState({ email: '', password: '', role: 'customer' as Role });
-  const [addErrors,       setAddErrors]       = useState<Record<string, string>>({});
+  const [users,              setUsers]              = useState<UserProfile[]>([]);
+  const [loadingUsers,       setLoadingUsers]       = useState(true);
+  const [submitting,         setSubmitting]         = useState(false);
+  const [updatingUserId,     setUpdatingUserId]     = useState<string | null>(null);
+  const [statusPickerOpenId, setStatusPickerOpenId] = useState<string | null>(null);
+  const [searchTerm,         setSearchTerm]         = useState('');
+  const [roleFilter,         setRoleFilter]         = useState<'all' | Role>('all');
+  const [statusFilter,       setStatusFilter]       = useState<'all' | Status>('all');
+  const [currentPage,        setCurrentPage]        = useState(1);
+  const [usersPerPage]                              = useState(10);
+  const [sortBy,             setSortBy]             = useState('created_at');
+  const [sortOrder,          setSortOrder]          = useState<'asc' | 'desc'>('desc');
+  const [expandedUserId,     setExpandedUserId]     = useState<string | null>(null);
+  const [editingUser,        setEditingUser]        = useState<UserProfile | null>(null);
+  const [showEditModal,      setShowEditModal]      = useState(false);
+  const [showAddModal,       setShowAddModal]       = useState(false);
+  const [deleteConfirmId,    setDeleteConfirmId]    = useState<string | null>(null);
+  const [bulkMode,           setBulkMode]           = useState(false);
+  const [selectedUsers,      setSelectedUsers]      = useState<string[]>([]);
+  const [toast,              setToast]              = useState<Toast | null>(null);
+  const [showPerms,          setShowPerms]          = useState(false);
+  const [editForm,           setEditForm]           = useState({ email: '', role: 'customer' as Role, status: 'active' as Status });
+  const [addForm,            setAddForm]            = useState({ email: '', password: '', role: 'customer' as Role });
+  const [addErrors,          setAddErrors]          = useState<Record<string, string>>({});
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -133,7 +226,8 @@ const UserManagement = () => {
         .order(field, { ascending: direction === 'asc' });
       if (error) throw error;
       setUsers((data ?? []).map(u => ({
-        ...u, status: u.status ?? 'active', last_login: u.last_login ?? u.created_at,
+        ...u, status: (u.status ?? 'active') as Status,
+        last_login: u.last_login ?? u.created_at,
       })));
     } catch (err) {
       console.error(err); showToast('Failed to load users', 'error');
@@ -159,16 +253,19 @@ const UserManagement = () => {
     } finally { setUpdatingUserId(null); }
   };
 
-  const handleStatusToggle = async (userId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    setUsers(p => p.map(u => u.id === userId ? { ...u, status: newStatus as Status } : u));
+  // ── Three-state status change ──────────────────────────────────────────────
+  const handleStatusChange = async (userId: string, newStatus: Status) => {
+    const prev = users.find(u => u.id === userId)?.status;
+    if (prev === newStatus) return; // no-op
+    setUsers(p => p.map(u => u.id === userId ? { ...u, status: newStatus } : u));
     setUpdatingUserId(userId);
     try {
-      const { error } = await supabase.from('profiles').update({ status: newStatus }).eq('id', userId);
+      const { error } = await supabase
+        .from('profiles').update({ status: newStatus }).eq('id', userId);
       if (error) throw error;
-      showToast(`User ${newStatus === 'active' ? 'activated' : 'deactivated'}`, 'success');
+      showToast(`Account set to ${STATUS_CFG[newStatus].label}`, 'success');
     } catch (err: any) {
-      setUsers(p => p.map(u => u.id === userId ? { ...u, status: currentStatus as Status } : u));
+      setUsers(p => p.map(u => u.id === userId ? { ...u, status: prev! } : u));
       showToast(err.message ?? 'Failed to update status', 'error');
     } finally { setUpdatingUserId(null); }
   };
@@ -208,7 +305,8 @@ const UserManagement = () => {
       if (authErr) throw authErr;
       if (authData.user) {
         const { error: profileErr } = await supabase.from('profiles').insert([{
-          id: authData.user.id, email: addForm.email, role: addForm.role,
+          id: authData.user.id, email: addForm.email,
+          role: addForm.role, status: 'active',
         }]);
         if (profileErr) throw profileErr;
       }
@@ -251,7 +349,7 @@ const UserManagement = () => {
     } finally { setSubmitting(false); }
   };
 
-  const handleBulkStatus = async (newStatus: string) => {
+  const handleBulkStatus = async (newStatus: Status) => {
     if (!selectedUsers.length) return;
     setSubmitting(true);
     try {
@@ -259,9 +357,10 @@ const UserManagement = () => {
         .update({ status: newStatus }).in('id', selectedUsers);
       if (error) throw error;
       setUsers(p => p.map(u =>
-        selectedUsers.includes(u.id) ? { ...u, status: newStatus as Status } : u
+        selectedUsers.includes(u.id) ? { ...u, status: newStatus } : u
       ));
-      showToast(`${selectedUsers.length} user${selectedUsers.length !== 1 ? 's' : ''} ${newStatus === 'active' ? 'activated' : 'deactivated'}`, 'success');
+      const n = selectedUsers.length;
+      showToast(`${n} user${n !== 1 ? 's' : ''} set to ${STATUS_CFG[newStatus].label}`, 'success');
       setSelectedUsers([]);
     } catch (err: any) {
       showToast(err.message ?? 'Failed to update users', 'error');
@@ -274,7 +373,8 @@ const UserManagement = () => {
   // ── Derived ────────────────────────────────────────────────────────────────
   const filteredUsers = users.filter(u =>
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (roleFilter === 'all' || u.role === roleFilter)
+    (roleFilter   === 'all' || u.role   === roleFilter)   &&
+    (statusFilter === 'all' || u.status === statusFilter)
   );
   const totalPages   = Math.ceil(filteredUsers.length / usersPerPage);
   const startIdx     = (currentPage - 1) * usersPerPage;
@@ -283,8 +383,8 @@ const UserManagement = () => {
   const adminCount    = users.filter(u => u.role === 'admin').length;
   const workerCount   = users.filter(u => u.role === 'worker').length;
   const customerCount = users.filter(u => u.role === 'customer').length;
+  const activeCount   = users.filter(u => u.status === 'active').length;
 
-  // ── Shared modal motion props ──────────────────────────────────────────────
   const modalSheet = {
     initial:    { scale: 0.93, opacity: 0, y: 40 },
     animate:    { scale: 1,    opacity: 1, y: 0  },
@@ -297,7 +397,7 @@ const UserManagement = () => {
     <AdminLayout title="User Management" subtitle="Manage system users and permissions">
       <div className="space-y-4 sm:space-y-6">
 
-        {/* ── Stat cards ────────────────────────────────────────────────────── */}
+        {/* ── Stat cards ──────────────────────────────────────────────────── */}
         {loadingUsers ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {Array.from({ length: 4 }).map((_, i) => <StatSkeleton key={i} />)}
@@ -305,10 +405,10 @@ const UserManagement = () => {
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {([
-              { icon: Users,       label: 'Total Users', value: users.length,   bg: 'bg-sky-50',     ic: 'text-sky-500'     },
-              { icon: Crown,       label: 'Admins',      value: adminCount,     bg: 'bg-violet-50',  ic: 'text-violet-500'  },
-              { icon: Briefcase,   label: 'Workers',     value: workerCount,    bg: 'bg-sky-50',     ic: 'text-sky-500'     },
-              { icon: ShoppingBag, label: 'Customers',   value: customerCount,  bg: 'bg-emerald-50', ic: 'text-emerald-500' },
+              { icon: Users,       label: 'Total Users',    value: users.length,   bg: 'bg-sky-50',     ic: 'text-sky-500'     },
+              { icon: Crown,       label: 'Admins',         value: adminCount,     bg: 'bg-violet-50',  ic: 'text-violet-500'  },
+              { icon: Briefcase,   label: 'Workers',        value: workerCount,    bg: 'bg-sky-50',     ic: 'text-sky-500'     },
+              { icon: CheckCircle, label: 'Active Accounts',value: activeCount,    bg: 'bg-emerald-50', ic: 'text-emerald-500' },
             ] as const).map(({ icon: Icon, label, value, bg, ic }) => (
               <div key={label} className="bg-white rounded-xl border border-neutral-200 p-3.5 sm:p-5 shadow-sm hover:border-neutral-300 transition-all">
                 <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl ${bg} flex items-center justify-center mb-2 sm:mb-3`}>
@@ -324,7 +424,7 @@ const UserManagement = () => {
         {/* ── Toolbar ───────────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
 
-          {/* Search — full width on mobile */}
+          {/* Search */}
           <div className="relative flex-1 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-400 pointer-events-none" />
             <input
@@ -340,10 +440,11 @@ const UserManagement = () => {
             )}
           </div>
 
-          {/* Filter + Bulk — 2-col grid on mobile, flex row on sm+ */}
-          <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
-            <div className="flex items-center gap-1.5 sm:gap-2 bg-white border border-neutral-200 rounded-xl px-2.5 sm:px-3 shadow-sm">
-              <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-400 flex-shrink-0" />
+          {/* Filters + Bulk */}
+          <div className="grid grid-cols-3 sm:flex gap-2 sm:gap-3">
+            {/* Role filter */}
+            <div className="flex items-center gap-1.5 bg-white border border-neutral-200 rounded-xl px-2.5 shadow-sm">
+              <Filter className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
               <select
                 value={roleFilter}
                 onChange={e => { setRoleFilter(e.target.value as 'all' | Role); setCurrentPage(1); }}
@@ -356,21 +457,37 @@ const UserManagement = () => {
               </select>
             </div>
 
+            {/* Status filter */}
+            <div className="flex items-center gap-1.5 bg-white border border-neutral-200 rounded-xl px-2.5 shadow-sm">
+              <Shield className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
+              <select
+                value={statusFilter}
+                onChange={e => { setStatusFilter(e.target.value as 'all' | Status); setCurrentPage(1); }}
+                className="w-full text-xs sm:text-sm font-medium text-neutral-700 bg-transparent border-none outline-none py-2 sm:py-2.5 pr-1 cursor-pointer"
+              >
+                <option value="all">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+
+            {/* Bulk toggle */}
             <button
               onClick={() => { setBulkMode(!bulkMode); setSelectedUsers([]); }}
-              className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-xl border transition-colors ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-xl border transition-colors ${
                 bulkMode ? 'bg-neutral-900 text-white border-neutral-900' : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
               }`}
             >
-              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Users className="w-3.5 h-3.5" />
               Bulk
             </button>
           </div>
 
-          {/* Add User — full-width on mobile */}
+          {/* Add User */}
           <button
             onClick={() => { setAddErrors({}); setShowAddModal(true); }}
-            className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-4 py-2 sm:py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs sm:text-sm font-medium rounded-xl transition-colors shadow-sm sm:flex-shrink-0 w-full sm:w-auto"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 py-2 sm:py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs sm:text-sm font-medium rounded-xl transition-colors shadow-sm w-full sm:w-auto sm:flex-shrink-0"
           >
             <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Add User
@@ -396,6 +513,10 @@ const UserManagement = () => {
                   className="text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 sm:py-1.5 bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50">
                   Deactivate
                 </button>
+                <button onClick={() => handleBulkStatus('suspended')} disabled={submitting}
+                  className="text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 sm:py-1.5 bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors disabled:opacity-50">
+                  Suspend
+                </button>
                 <button onClick={() => setSelectedUsers([])}
                   className="text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-1 sm:py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
                   Clear
@@ -410,7 +531,8 @@ const UserManagement = () => {
           <p className="text-xs text-neutral-400 font-medium -mt-1 sm:-mt-2">
             <span className="text-neutral-700 font-semibold">{filteredUsers.length}</span>
             {' '}of {users.length} user{users.length !== 1 ? 's' : ''}
-            {roleFilter !== 'all' && <> · <span className="capitalize">{roleFilter}s</span></>}
+            {roleFilter   !== 'all' && <> · <span className="capitalize">{roleFilter}s</span></>}
+            {statusFilter !== 'all' && <> · <span className="capitalize">{statusFilter}</span></>}
           </p>
         )}
 
@@ -460,6 +582,7 @@ const UserManagement = () => {
                   ? Array.from({ length: 6 }).map((_, i) => <RowSkeleton key={i} />)
                   : currentUsers.map((user, idx) => {
                     const { cls: roleCls, Icon: RoleIcon } = ROLE_CFG[user.role] ?? ROLE_CFG.customer;
+                    const statusCfg  = STATUS_CFG[user.status] ?? STATUS_CFG.active;
                     const isUpdating = updatingUserId === user.id;
                     const isExpanded = expandedUserId === user.id;
 
@@ -480,7 +603,7 @@ const UserManagement = () => {
                             </td>
                           )}
 
-                          {/* User */}
+                          {/* User cell */}
                           <td className="px-3 sm:px-5 py-3 sm:py-4">
                             <div className="flex items-center gap-2.5 sm:gap-3">
                               <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 ${avatarCls(user.email)}`}>
@@ -494,18 +617,17 @@ const UserManagement = () => {
                                   <p className="text-[9px] sm:text-[10px] text-neutral-400 font-mono hidden sm:block">
                                     {user.id.slice(0, 8)}…
                                   </p>
-                                  <span className={`inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold ${
-                                    user.status === 'active' ? 'text-emerald-600' : 'text-red-500'
-                                  }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'active' ? 'bg-emerald-500' : 'bg-red-400'}`} />
-                                    <span className="capitalize">{user.status}</span>
+                                  {/* Three-state status badge */}
+                                  <span className={`inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold ${statusCfg.text}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                                    <span className="capitalize">{statusCfg.label}</span>
                                   </span>
                                 </div>
                               </div>
                             </div>
                           </td>
 
-                          {/* Role */}
+                          {/* Role cell */}
                           <td className="px-3 sm:px-5 py-3 sm:py-4">
                             <div className="flex items-center gap-1.5 sm:gap-2">
                               <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold ${roleCls}`}>
@@ -546,21 +668,22 @@ const UserManagement = () => {
                                 className="p-1 sm:p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors" title="Edit">
                                 <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               </button>
-                              <button onClick={() => handleStatusToggle(user.id, user.status)} disabled={isUpdating}
-                                className={`p-1 sm:p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
-                                  user.status === 'active'
-                                    ? 'text-neutral-400 hover:text-red-500 hover:bg-red-50'
-                                    : 'text-neutral-400 hover:text-emerald-600 hover:bg-emerald-50'
-                                }`}
-                                title={user.status === 'active' ? 'Deactivate' : 'Activate'}>
-                                {user.status === 'active'
-                                  ? <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                  : <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
-                              </button>
+
+                              {/* ── StatusPicker — replaces binary toggle ── */}
+                              <StatusPicker
+                                userId={user.id}
+                                currentStatus={user.status}
+                                isOpen={statusPickerOpenId === user.id}
+                                isUpdating={isUpdating}
+                                onToggle={id => setStatusPickerOpenId(id)}
+                                onSelect={handleStatusChange}
+                              />
+
                               <button onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
                                 className="p-1 sm:p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors" title="Details">
                                 <ChevronRight className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
                               </button>
+
                               <button onClick={() => setDeleteConfirmId(user.id)}
                                 className="p-1 sm:p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
                                 <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -569,7 +692,7 @@ const UserManagement = () => {
                           </td>
                         </motion.tr>
 
-                        {/* Inline expanded detail row */}
+                        {/* Expanded detail row */}
                         <AnimatePresence initial={false}>
                           {isExpanded && (
                             <motion.tr
@@ -577,7 +700,7 @@ const UserManagement = () => {
                               transition={{ duration: 0.16 }}
                             >
                               <td colSpan={bulkMode ? 6 : 5} className="bg-neutral-50/60 border-b border-neutral-100 px-3 sm:px-5 py-3 sm:py-4">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-xs">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs">
                                   <div>
                                     <p className="text-neutral-400 font-medium mb-0.5">Full ID</p>
                                     <p className="font-mono text-neutral-600 break-all text-[9px] sm:text-[10px]">{user.id}</p>
@@ -588,18 +711,14 @@ const UserManagement = () => {
                                       {user.last_login ? fmtDate(user.last_login) : 'Never'}
                                     </p>
                                   </div>
-                                  {/* Show Joined + Orders here on mobile since columns are hidden */}
-                                  <div className="sm:hidden">
-                                    <p className="text-neutral-400 font-medium mb-0.5">Joined</p>
-                                    <p className="text-neutral-700 font-medium text-[11px]">{fmtDate(user.created_at)}</p>
-                                  </div>
                                   <div>
                                     <p className="text-neutral-400 font-medium mb-0.5">Account Status</p>
-                                    <p className={`font-semibold capitalize text-[11px] sm:text-xs ${user.status === 'active' ? 'text-emerald-600' : 'text-red-500'}`}>
-                                      {user.status}
-                                    </p>
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusCfg.badgeCls}`}>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                                      {statusCfg.label}
+                                    </span>
                                   </div>
-                                  {/* Role change select shown in expanded row on mobile */}
+                                  {/* Role + status change on mobile */}
                                   <div className="sm:hidden">
                                     <p className="text-neutral-400 font-medium mb-1">Change Role</p>
                                     <select
@@ -611,6 +730,19 @@ const UserManagement = () => {
                                       <option value="customer">Customer</option>
                                       <option value="worker">Worker</option>
                                       <option value="admin">Admin</option>
+                                    </select>
+                                  </div>
+                                  <div className="sm:hidden">
+                                    <p className="text-neutral-400 font-medium mb-1">Change Status</p>
+                                    <select
+                                      value={user.status}
+                                      onChange={e => handleStatusChange(user.id, e.target.value as Status)}
+                                      disabled={updatingUserId === user.id}
+                                      className="text-xs text-neutral-700 bg-white border border-neutral-200 rounded-lg px-2 py-1 outline-none cursor-pointer disabled:opacity-40"
+                                    >
+                                      <option value="active">Active</option>
+                                      <option value="inactive">Inactive</option>
+                                      <option value="suspended">Suspended</option>
                                     </select>
                                   </div>
                                 </div>
@@ -635,10 +767,12 @@ const UserManagement = () => {
               <div className="text-center">
                 <p className="text-sm font-semibold text-neutral-700">No users found</p>
                 <p className="text-xs text-neutral-400 mt-1">
-                  {searchTerm || roleFilter !== 'all' ? 'Try adjusting your search or filters' : 'No users yet'}
+                  {searchTerm || roleFilter !== 'all' || statusFilter !== 'all'
+                    ? 'Try adjusting your search or filters'
+                    : 'No users yet'}
                 </p>
               </div>
-              {!searchTerm && roleFilter === 'all' && (
+              {!searchTerm && roleFilter === 'all' && statusFilter === 'all' && (
                 <button onClick={() => setShowAddModal(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors">
                   <UserPlus className="w-4 h-4" /> Add First User
@@ -704,16 +838,13 @@ const UserManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Add user modal — bottom sheet on mobile ────────────────────────────── */}
+      {/* ── Add user modal ─────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {showAddModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
             <motion.div {...modalSheet} className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl max-h-[96vh] overflow-y-auto">
-
-              {/* Header */}
               <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-neutral-100 relative">
-                {/* Drag handle — mobile only */}
                 <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-neutral-200 rounded-full sm:hidden" />
                 <div className="mt-3 sm:mt-0">
                   <h2 className="text-sm sm:text-base font-semibold text-neutral-900">Add New User</h2>
@@ -780,16 +911,14 @@ const UserManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Edit user modal — bottom sheet on mobile ───────────────────────────── */}
+      {/* ── Edit user modal ────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {showEditModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
             <motion.div {...modalSheet} className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[96vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl">
 
-              {/* Sticky header */}
               <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 bg-white/90 backdrop-blur-sm border-b border-neutral-100 rounded-t-2xl relative">
-                {/* Drag handle — mobile only */}
                 <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-neutral-200 rounded-full sm:hidden" />
                 <div className="flex items-center gap-2.5 sm:gap-3 mt-3 sm:mt-0">
                   {editingUser && (
@@ -819,9 +948,7 @@ const UserManagement = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5 uppercase tracking-wider">
-                    Role <span className="text-red-400">*</span>
-                  </label>
+                  <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5 uppercase tracking-wider">Role</label>
                   <div className="grid grid-cols-3 gap-2">
                     {(['customer', 'worker', 'admin'] as Role[]).map(role => {
                       const { label, Icon } = ROLE_CFG[role];
@@ -841,17 +968,32 @@ const UserManagement = () => {
                   <p className="text-[11px] text-neutral-400 mt-1.5">{ROLE_DESC[editForm.role]}</p>
                 </div>
 
+                {/* ── Three-state status picker in edit modal ── */}
                 <div>
-                  <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5 uppercase tracking-wider">
+                  <label className="block text-[11px] font-semibold text-neutral-500 mb-2 uppercase tracking-wider">
                     Account Status
                   </label>
-                  <select value={editForm.status}
-                    onChange={e => setEditForm(f => ({ ...f, status: e.target.value as Status }))}
-                    className={inputCls()}>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="suspended">Suspended</option>
-                  </select>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['active', 'inactive', 'suspended'] as Status[]).map(status => {
+                      const c = STATUS_CFG[status];
+                      return (
+                        <button key={status} type="button" onClick={() => setEditForm(f => ({ ...f, status }))}
+                          className={`flex flex-col items-center gap-1.5 py-2.5 sm:py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
+                            editForm.status === status
+                              ? 'border-neutral-900 bg-neutral-900 text-white'
+                              : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
+                          }`}>
+                          <c.Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          {c.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-neutral-400 mt-1.5">
+                    {editForm.status === 'active'    && 'User can log in and access all features for their role.'}
+                    {editForm.status === 'inactive'  && 'Account is disabled. User cannot log in.'}
+                    {editForm.status === 'suspended' && 'Account is suspended pending review. Login is blocked.'}
+                  </p>
                 </div>
 
                 {/* Permissions accordion */}
@@ -909,7 +1051,7 @@ const UserManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Toast — full-width on mobile ───────────────────────────────────────── */}
+      {/* ── Toast ─────────────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
           <motion.div
