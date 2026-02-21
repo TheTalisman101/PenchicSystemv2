@@ -43,8 +43,8 @@ type ToastType = 'success' | 'error' | 'warning' | 'info';
 interface ToastData { id: number; type: ToastType; message: string; }
 
 const TOAST_ICONS: Record<ToastType, React.ReactNode> = {
-  success: <CheckCircle2 className="w-4 h-4 flex-shrink-0" />,
-  error:   <AlertCircle  className="w-4 h-4 flex-shrink-0" />,
+  success: <CheckCircle2  className="w-4 h-4 flex-shrink-0" />,
+  error:   <AlertCircle   className="w-4 h-4 flex-shrink-0" />,
   warning: <AlertTriangle className="w-4 h-4 flex-shrink-0" />,
   info:    <Info          className="w-4 h-4 flex-shrink-0" />,
 };
@@ -88,14 +88,14 @@ ToastContainer.displayName = 'ToastContainer';
 
 // ── ConfirmDialog ─────────────────────────────────────────────────────────────
 interface ConfirmDialogProps {
-  open:        boolean;
-  title:       string;
-  message:     string;
+  open:          boolean;
+  title:         string;
+  message:       string;
   confirmLabel?: string;
   cancelLabel?:  string;
   danger?:       boolean;
-  onConfirm:   () => void;
-  onCancel:    () => void;
+  onConfirm:     () => void;
+  onCancel:      () => void;
 }
 const ConfirmDialog = memo(({
   open, title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel',
@@ -125,7 +125,10 @@ const ConfirmDialog = memo(({
             <div className="flex items-start gap-3 mb-4">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0
                 ${danger ? 'bg-red-100' : 'bg-amber-100'}`}>
-                <AlertTriangle className={`w-4.5 h-4.5 ${danger ? 'text-red-600' : 'text-amber-600'}`} style={{ width: 18, height: 18 }} />
+                <AlertTriangle
+                  className={`${danger ? 'text-red-600' : 'text-amber-600'}`}
+                  style={{ width: 18, height: 18 }}
+                />
               </div>
               <div>
                 <h3 className="font-bold text-neutral-900 text-sm">{title}</h3>
@@ -170,7 +173,6 @@ interface CartItemRowProps {
 
 const CartItemRow = memo(({ item, onRemove, onUpdateQty, onSetQty }: CartItemRowProps) => {
   const [draft, setDraft] = useState(String(item.quantity));
-
   useEffect(() => { setDraft(String(item.quantity)); }, [item.quantity]);
 
   const commit = (raw: string) => {
@@ -407,29 +409,25 @@ const POSInterface = () => {
   const [cashTendered, setCashTendered] = useState('');
   const [cashError,    setCashError]    = useState('');
 
-  // ── Toast helpers ─────────────────────────────────────────────────────────────
+  // ── Toast ─────────────────────────────────────────────────────────────────
   const showToast = useCallback((type: ToastType, message: string, duration = 3500) => {
     const id = ++toastIdCounter;
     setToasts(prev => [...prev, { id, type, message }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration);
   }, []);
-  const dismissToast = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
+  const dismissToast = useCallback((id: number) =>
+    setToasts(prev => prev.filter(t => t.id !== id)), []);
 
-  // ── Confirm helper ────────────────────────────────────────────────────────────
+  // ── Confirm ───────────────────────────────────────────────────────────────
   const showConfirm = useCallback((
-    title: string, message: string,
-    onConfirm: () => void,
+    title: string, message: string, onConfirm: () => void,
     opts?: { confirmLabel?: string; danger?: boolean }
-  ) => {
-    setConfirmDialog({ open: true, title, message, onConfirm, ...opts });
-  }, []);
-  const closeConfirm = useCallback(() => {
-    setConfirmDialog(prev => ({ ...prev, open: false }));
-  }, []);
+  ) => setConfirmDialog({ open: true, title, message, onConfirm, ...opts }), []);
 
-  // ── Auth guard ───────────────────────────────────────────────────────────────
+  const closeConfirm = useCallback(() =>
+    setConfirmDialog(prev => ({ ...prev, open: false })), []);
+
+  // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user || !['admin', 'worker'].includes(user.role)) navigate('/');
   }, [user, navigate]);
@@ -439,19 +437,12 @@ const POSInterface = () => {
   useEffect(() => {
     setCanFullscreen(fsSupported());
     const onFsChange = () => setIsFullscreen(!!fsElement());
-    document.addEventListener('fullscreenchange',       onFsChange);
-    document.addEventListener('webkitfullscreenchange', onFsChange);
-    document.addEventListener('mozfullscreenchange',    onFsChange);
-    document.addEventListener('MSFullscreenChange',     onFsChange);
-    return () => {
-      document.removeEventListener('fullscreenchange',       onFsChange);
-      document.removeEventListener('webkitfullscreenchange', onFsChange);
-      document.removeEventListener('mozfullscreenchange',    onFsChange);
-      document.removeEventListener('MSFullscreenChange',     onFsChange);
-    };
+    const events = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+    events.forEach(ev => document.addEventListener(ev, onFsChange));
+    return () => events.forEach(ev => document.removeEventListener(ev, onFsChange));
   }, []);
 
-  // ── Data ─────────────────────────────────────────────────────────────────────
+  // ── Data ──────────────────────────────────────────────────────────────────
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
@@ -467,28 +458,28 @@ const POSInterface = () => {
     } catch (err) {
       console.error('fetchProducts:', err);
       showToast('error', 'Failed to load products. Please refresh.');
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   };
 
-  // ── Fullscreen ────────────────────────────────────────────────────────────────
+  // ── Fullscreen ────────────────────────────────────────────────────────────
   const toggleFullscreen = useCallback(async () => {
     try {
       fsElement() ? fsExit() : fsEnter(document.documentElement);
-    } catch (err) {
+    } catch {
       showToast('warning', 'Fullscreen is not available on this device.');
     }
   }, [showToast]);
 
-  // ── Exit POS ──────────────────────────────────────────────────────────────────
+  // ── Exit POS ──────────────────────────────────────────────────────────────
   const handleExitPOS = useCallback(() => {
     if (cart.length > 0) {
       showConfirm(
         'Leave POS?',
         `You have ${cart.length} item${cart.length !== 1 ? 's' : ''} in your cart. Leaving will clear your cart.`,
         () => {
-          clearCart();
-          closeConfirm();
+          clearCart(); closeConfirm();
           if (fsElement()) { fsExit(); setTimeout(() => navigate('/admin/dashboard'), 150); }
           else navigate('/admin/dashboard');
         },
@@ -500,12 +491,9 @@ const POSInterface = () => {
     }
   }, [cart, clearCart, navigate, showConfirm, closeConfirm]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────────
+  // ── Cart handlers ─────────────────────────────────────────────────────────
   const handleAddToCart = useCallback((product: Product) => {
-    if (product.stock <= 0) {
-      showToast('warning', `${product.name} is out of stock.`);
-      return;
-    }
+    if (product.stock <= 0) { showToast('warning', `${product.name} is out of stock.`); return; }
     const existing = cart.find(i => i.product.id === product.id);
     if (existing && existing.quantity >= product.stock) {
       showToast('warning', `Only ${product.stock} unit${product.stock !== 1 ? 's' : ''} available.`);
@@ -538,7 +526,7 @@ const POSInterface = () => {
     setCashError('');  setCashTendered('');
   }, []);
 
-  // ── Totals ───────────────────────────────────────────────────────────────────
+  // ── Totals ────────────────────────────────────────────────────────────────
   const subtotal      = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const discountTotal = appliedDiscounts.reduce((s, d) => s + d.savings, 0);
   const total         = subtotal - discountTotal;
@@ -561,7 +549,7 @@ const POSInterface = () => {
     setCashTendered(''); setCashError('');
   };
 
-  // ── Checkout ─────────────────────────────────────────────────────────────────
+  // ── Checkout (with stock-check fix) ───────────────────────────────────────
   const handleCheckout = async () => {
     if (cart.length === 0) { showToast('warning', 'Your cart is empty.'); return; }
 
@@ -578,12 +566,35 @@ const POSInterface = () => {
 
     setProcessing(true);
     try {
+      // ── 1. Re-fetch live stock to avoid stale-cache constraint violations ──
+      const productIds = cart.map(i => i.product.id);
+      const { data: liveProducts, error: stockErr } = await supabase
+        .from('products').select('id, stock, name').in('id', productIds);
+      if (stockErr) throw stockErr;
+
+      // ── 2. Validate stock before touching the DB ───────────────────────────
+      for (const item of cart) {
+        const live = liveProducts?.find(p => p.id === item.product.id);
+        const availableStock = live?.stock ?? item.product.stock;
+        if (item.quantity > availableStock) {
+          showToast(
+            'error',
+            `"${item.product.name}" only has ${availableStock} unit${availableStock !== 1 ? 's' : ''} left. Please adjust the cart.`,
+            6000
+          );
+          setProcessing(false);
+          return;
+        }
+      }
+
+      // ── 3. Create order ────────────────────────────────────────────────────
       const { data: order, error: orderErr } = await supabase
         .from('orders')
         .insert([{ user_id: user?.id, status: 'pending', total, cashier_id: user?.id }])
         .select().single();
       if (orderErr) throw orderErr;
 
+      // ── 4. Insert order items ──────────────────────────────────────────────
       const orderItems = cart.map(item => {
         const disc = appliedDiscounts.find(d => d.productId === item.product.id);
         return {
@@ -596,6 +607,7 @@ const POSInterface = () => {
       const { error: itemsErr } = await supabase.from('order_items').insert(orderItems);
       if (itemsErr) throw itemsErr;
 
+      // ── 5. Payment ─────────────────────────────────────────────────────────
       let paymentStatus  = 'completed';
       let mpesaReference = null;
 
@@ -624,16 +636,28 @@ const POSInterface = () => {
         .update({ status: paymentMethod === 'mpesa' ? 'pending' : 'completed' })
         .eq('id', order.id);
 
+      // ── 6. Deduct stock — clamped to 0, never negative ─────────────────────
       for (const item of cart) {
-        const newStock = item.product.stock - item.quantity;
-        await supabase.from('products').update({ stock: newStock }).eq('id', item.product.id);
+        const live         = liveProducts?.find(p => p.id === item.product.id);
+        const currentStock = live?.stock ?? item.product.stock;
+        const newStock     = Math.max(0, currentStock - item.quantity); // ← fix
+
+        const { error: stockUpdateErr } = await supabase
+          .from('products').update({ stock: newStock }).eq('id', item.product.id);
+        if (stockUpdateErr) throw stockUpdateErr;
+
         await supabase.from('stock_logs').insert([{
-          product_id: item.product.id, variant_id: item.variant?.id || null,
-          previous_stock: item.product.stock, new_stock: newStock,
-          change_type: 'sale', reason: `POS Sale - Order #${order.id}`, changed_by: user?.id,
+          product_id:     item.product.id,
+          variant_id:     item.variant?.id || null,
+          previous_stock: currentStock,
+          new_stock:      newStock,
+          change_type:    'sale',
+          reason:         `POS Sale - Order #${order.id}`,
+          changed_by:     user?.id,
         }]);
       }
 
+      // ── 7. Receipt ─────────────────────────────────────────────────────────
       const receiptItems = cart.map(item => {
         const disc = appliedDiscounts.find(d => d.productId === item.product.id);
         const dpu  = disc ? disc.discountAmount / item.quantity : 0;
@@ -660,6 +684,7 @@ const POSInterface = () => {
       resetPaymentState();
       setShowReceipt(true);
       fetchProducts();
+
     } catch (err: any) {
       console.error('Checkout error:', err);
       showToast('error', err.message || 'Failed to process order. Please try again.', 6000);
@@ -668,7 +693,7 @@ const POSInterface = () => {
     }
   };
 
-  // ── Derived ───────────────────────────────────────────────────────────────────
+  // ── Derived ───────────────────────────────────────────────────────────────
   const categories       = ['all', ...new Set(products.map(p => p.category))];
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -692,10 +717,8 @@ const POSInterface = () => {
   return (
     <div ref={containerRef} className="min-h-screen bg-neutral-50">
 
-      {/* ── Toast stack ──────────────────────────────────────────────────────── */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-      {/* ── Confirm dialog ───────────────────────────────────────────────────── */}
       <ConfirmDialog
         open={confirmDialog.open}
         title={confirmDialog.title}
@@ -854,8 +877,8 @@ const POSInterface = () => {
           <motion.button
             key="fab"
             initial={{ scale: 0, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0  }}
+            exit={{    scale: 0, opacity: 0, y: 20 }}
             transition={{ type: 'spring', stiffness: 400, damping: 28 }}
             onClick={() => setShowMobileCart(true)}
             className="lg:hidden fixed z-40 touch-manipulation"
@@ -938,6 +961,7 @@ const POSInterface = () => {
                   </button>
                 </div>
 
+                {/* Order summary */}
                 <div className="bg-neutral-50 rounded-xl p-3 mb-4 space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-neutral-500">Subtotal</span>
@@ -955,6 +979,7 @@ const POSInterface = () => {
                   </div>
                 </div>
 
+                {/* Payment method */}
                 <div className="mb-4">
                   <label className="block text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-2">
                     Payment Method
@@ -982,6 +1007,7 @@ const POSInterface = () => {
                   </div>
                 </div>
 
+                {/* Cash */}
                 <AnimatePresence>
                   {paymentMethod === 'cash' && (
                     <motion.div
@@ -1038,11 +1064,15 @@ const POSInterface = () => {
                                 ${cashOk ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}
                             >
                               <div>
-                                <p className={`text-[10px] font-bold uppercase tracking-wider ${cashOk ? 'text-emerald-600' : 'text-red-600'}`}>
+                                <p className={`text-[10px] font-bold uppercase tracking-wider
+                                  ${cashOk ? 'text-emerald-600' : 'text-red-600'}`}>
                                   {cashOk ? 'Change Due' : 'Insufficient'}
                                 </p>
-                                <p className={`text-2xl font-bold tabular-nums mt-0.5 ${cashOk ? 'text-emerald-700' : 'text-red-700'}`}>
-                                  {cashOk ? `KES ${cashChange.toLocaleString()}` : `-KES ${(total - cashNum).toLocaleString()}`}
+                                <p className={`text-2xl font-bold tabular-nums mt-0.5
+                                  ${cashOk ? 'text-emerald-700' : 'text-red-700'}`}>
+                                  {cashOk
+                                    ? `KES ${cashChange.toLocaleString()}`
+                                    : `-KES ${(total - cashNum).toLocaleString()}`}
                                 </p>
                               </div>
                               {cashOk && (
@@ -1058,6 +1088,7 @@ const POSInterface = () => {
                   )}
                 </AnimatePresence>
 
+                {/* M-Pesa */}
                 <AnimatePresence>
                   {paymentMethod === 'mpesa' && (
                     <motion.div
